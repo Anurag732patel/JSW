@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "start": "node backend/server.js",
+    "seed": "node backend/seed.js"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^6.0.2",
