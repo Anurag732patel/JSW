@@ -89,6 +89,162 @@ const defaultPaintProgress = [
   { name: 'Manoj Ent.\nExt. Wall', target: 500, done: 405.85 },
 ];
 
+// Sheet 2 — Complaints List (Default / Sample data)
+const defaultComplaintsList = [
+  {
+    department: 'Civil',
+    jobNo: '5064',
+    description: 'Entrance grill painting work start at M3 building ground floor',
+    completedDetails: '',
+    pendingDetails: 'work in progress',
+    feedback: ''
+  },
+  {
+    department: 'Civil',
+    jobNo: '5317',
+    description: 'Vehicle parking painting near L & M block',
+    completedDetails: '',
+    pendingDetails: 'Work stopped for certain time due to rain',
+    feedback: ''
+  },
+  {
+    department: 'Civil',
+    jobNo: '',
+    description: 'N & O Block parking painting',
+    completedDetails: '',
+    pendingDetails: 'Work stopped for certain time due to rain',
+    feedback: ''
+  },
+  {
+    department: 'Civil',
+    jobNo: '',
+    description: 'E3-701 Putty & painting work',
+    completedDetails: '',
+    pendingDetails: 'Work in progress',
+    feedback: ''
+  },
+  {
+    department: 'Civil',
+    jobNo: '',
+    description: 'NEW GET D-914 Putty & painting work',
+    completedDetails: '',
+    pendingDetails: 'Work in progress',
+    feedback: ''
+  },
+  {
+    department: 'Civil',
+    jobNo: '',
+    description: 'A & C Block no parking painting',
+    completedDetails: '',
+    pendingDetails: 'Work in progress',
+    feedback: ''
+  },
+  {
+    department: 'Civil',
+    jobNo: '',
+    description: 'D-001 Putty & painting',
+    completedDetails: '',
+    pendingDetails: 'Work in progress',
+    feedback: ''
+  },
+  {
+    department: 'Civil',
+    jobNo: '',
+    description: 'E3-603 Kitchen sink repairing',
+    completedDetails: '',
+    pendingDetails: 'Work in progress',
+    feedback: ''
+  },
+  {
+    department: 'Civil',
+    jobNo: '',
+    description: 'C-203(Vacant room) Both bathroom wall tiles fixing',
+    completedDetails: '',
+    pendingDetails: 'Work in progress',
+    feedback: ''
+  },
+  {
+    department: 'Civil',
+    jobNo: '',
+    description: 'NEW GET CF-102(Vacant room) Full flat painting',
+    completedDetails: '',
+    pendingDetails: 'Work in progress',
+    feedback: ''
+  },
+  {
+    department: 'Civil',
+    jobNo: '',
+    description: 'H-604 Putty & painting',
+    completedDetails: '',
+    pendingDetails: 'Work in progress',
+    feedback: ''
+  },
+  {
+    department: 'Civil',
+    jobNo: '',
+    description: 'M3-604(Vacant room) Full flat painting',
+    completedDetails: '',
+    pendingDetails: 'Work in progress',
+    feedback: ''
+  },
+  {
+    department: 'Civil',
+    jobNo: '',
+    description: 'Temple lord Vishwakarma stage marble work',
+    completedDetails: '',
+    pendingDetails: 'Work in progress',
+    feedback: ''
+  },
+  {
+    department: 'Plumbing',
+    jobNo: '',
+    description: 'FU1-005 Kitchen sink waste coupling damage',
+    completedDetails: 'New installed',
+    pendingDetails: '',
+    feedback: 'Outstanding'
+  },
+  {
+    department: 'Plumbing',
+    jobNo: '',
+    description: 'E3-601 Kitchen sink cock damage',
+    completedDetails: 'New installed',
+    pendingDetails: '',
+    feedback: 'Outstanding'
+  },
+  {
+    department: 'Seepage',
+    jobNo: '5888',
+    description: 'E2-701 Balcony ceiling seepage',
+    completedDetails: '',
+    pendingDetails: 'Work will start as soon as possible',
+    feedback: ''
+  },
+  {
+    department: 'Seepage',
+    jobNo: '6769',
+    description: 'E2-804 Hall ceiling seepage',
+    completedDetails: '',
+    pendingDetails: 'Work will start as soon as possible',
+    feedback: ''
+  },
+  {
+    department: 'Seepage',
+    jobNo: '',
+    description: 'J-302 Master bedroom ceiling seepage',
+    completedDetails: '',
+    pendingDetails: 'Work will start as soon as possible',
+    feedback: ''
+  },
+  {
+    department: 'Seepage',
+    jobNo: '8893',
+    description: 'IB Basement floor seepage',
+    completedDetails: '',
+    pendingDetails: 'Work under progress',
+    feedback: ''
+  }
+];
+
 // ─── Section Definitions ────────────────────────────────────────────────────
 const SECTIONS = [
   { id: 'guest-house', label: 'Guest House Occupancy', icon: '🏨' },
@@ -130,6 +286,12 @@ export default function MainDashboard() {
   const [showDateModal, setShowDateModal] = useState(false);
   const [pendingFile, setPendingFile] = useState(null);
   const [inputDate, setInputDate] = useState('');
+
+  const [showComplaintsTable, setShowComplaintsTable] = useState(false);
+
+  useEffect(() => {
+    setShowComplaintsTable(false);
+  }, [activeSection]);
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -210,6 +372,7 @@ export default function MainDashboard() {
   const complaintsPie = importedData?.complaintsPie || [];
   const complaintsStatus = importedData?.complaintsStatus || [];
   const paintProgress = importedData?.paintProgress || [];
+  const complaintsList = importedData?.complaintsList || defaultComplaintsList;
 
   const totalBreakfast = mealData.reduce((s, m) => s + (m.breakfast || 0), 0);
   const totalLunch = mealData.reduce((s, m) => s + (m.lunch || 0), 0);
@@ -331,6 +494,14 @@ export default function MainDashboard() {
     addSheet(paintProgress, 'PaintProgress');
 
     XLSX.writeFile(wb, `Township_DPR_${new Date().toISOString().split('T')[0]}.xlsx`);
+  };
+
+  // ─── Remove / Clear Data Handler ──────────────────────────────────
+  const handleRemoveData = () => {
+    setImportedData(null);
+    setImportFileName('');
+    setSelectedDate('');
+    setShowComplaintsTable(false);
   };
 
   // ─── Visualization Renderer ────────────────────────────────────────
@@ -567,48 +738,301 @@ export default function MainDashboard() {
       case 'complaints':
         return (
           <motion.div key="complaints" {...contentVariants} className="md2-viz-content md2-viz-container">
-            <div className="md2-chart-grid">
-              <div className="md2-chart-panel">
-                <p className="md2-chart-label" style={{ fontWeight: 'bold', color: '#f8fafc' }}>Jobs by Category</p>
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie data={complaintsPie} cx="50%" cy="50%"
-                      outerRadius={95} dataKey="value" paddingAngle={3}
-                      label={({ name, value }) => `${name}: ${value}`}
-                      labelLine={{ stroke: 'rgba(255,255,255,0.4)', strokeWidth: 1.5 }}>
-                      {complaintsPie.map((e, i) => <Cell key={i} fill={e.color || defaultComplaintsPie[i]?.color || '#0b4d8c'} />)}
-                    </Pie>
-                    <Tooltip {...TOOLTIP_STYLE} cursor={false} />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-              <div className="md2-chart-panel md2-chart-panel--large">
-                <p className="md2-chart-label" style={{ fontWeight: 'bold', color: '#f8fafc' }}>Status by Category</p>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={complaintsStatus} barGap={4}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-                    <XAxis dataKey="name" tick={{ fill: '#ffffff', fontSize: 12, fontWeight: 'bold' }} stroke="rgba(255,255,255,0.2)" />
-                    <YAxis tick={{ fill: '#ffffff', fontSize: 12, fontWeight: 'bold' }} stroke="rgba(255,255,255,0.2)" />
-                    <Tooltip {...TOOLTIP_STYLE} cursor={false} />
-                    <Legend wrapperStyle={{ color: '#f8fafc', fontSize: 12, fontWeight: 'bold' }} />
-                    <Bar dataKey="completed" name="Completed" fill="#2a9d8f" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="inProgress" name="In Progress" fill="#c0293a" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-            <div className="md2-kpi-strip">
-              <div className="md2-kpi-mini" style={{ borderLeft: '4px solid #f8fafc' }}>
-                <span className="md2-kpi-mini-value" style={{ color: '#f8fafc' }}>{totalComplaints}</span>
-                <span className="md2-kpi-mini-label" style={{ fontWeight: 'bold' }}>Total Jobs</span>
-              </div>
-              {complaintsPie.map((c, i) => (
-                <div key={c.name} className="md2-kpi-mini" style={{ borderLeft: `3px solid ${c.color || defaultComplaintsPie[i]?.color || '#0b4d8c'}` }}>
-                  <span className="md2-kpi-mini-value" style={{ color: c.color || defaultComplaintsPie[i]?.color }}>{c.value}</span>
-                  <span className="md2-kpi-mini-label" style={{ fontWeight: 'bold' }}>{c.name}</span>
-                </div>
-              ))}
-            </div>
+            <AnimatePresence mode="wait">
+              {!showComplaintsTable ? (
+                <motion.div
+                  key="charts-view"
+                  initial={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -80, transition: { duration: 0.35, ease: 'easeIn' } }}
+                  style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '20px' }}
+                >
+                  <div className="md2-chart-grid">
+                    <div className="md2-chart-panel">
+                      <p className="md2-chart-label" style={{ fontWeight: 'bold', color: '#f8fafc' }}>Jobs by Category</p>
+                      <ResponsiveContainer width="100%" height={300}>
+                        <PieChart>
+                          <Pie data={complaintsPie} cx="50%" cy="50%"
+                            outerRadius={95} dataKey="value" paddingAngle={3}
+                            label={({ name, value }) => `${name}: ${value}`}
+                            labelLine={{ stroke: 'rgba(255,255,255,0.4)', strokeWidth: 1.5 }}>
+                            {complaintsPie.map((e, i) => <Cell key={i} fill={e.color || defaultComplaintsPie[i]?.color || '#0b4d8c'} />)}
+                          </Pie>
+                          <Tooltip {...TOOLTIP_STYLE} cursor={false} />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+                    <div className="md2-chart-panel md2-chart-panel--large">
+                      <p className="md2-chart-label" style={{ fontWeight: 'bold', color: '#f8fafc' }}>Status by Category</p>
+                      <ResponsiveContainer width="100%" height={300}>
+                        <BarChart data={complaintsStatus} barGap={4}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+                          <XAxis dataKey="name" tick={{ fill: '#ffffff', fontSize: 12, fontWeight: 'bold' }} stroke="rgba(255,255,255,0.2)" />
+                          <YAxis tick={{ fill: '#ffffff', fontSize: 12, fontWeight: 'bold' }} stroke="rgba(255,255,255,0.2)" />
+                          <Tooltip {...TOOLTIP_STYLE} cursor={false} />
+                          <Legend wrapperStyle={{ color: '#f8fafc', fontSize: 12, fontWeight: 'bold' }} />
+                          <Bar dataKey="completed" name="Completed" fill="#2a9d8f" radius={[4, 4, 0, 0]} />
+                          <Bar dataKey="inProgress" name="In Progress" fill="#c0293a" radius={[4, 4, 0, 0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                  <div className="md2-kpi-strip">
+                    <div className="md2-kpi-mini" style={{ borderLeft: '4px solid #f8fafc' }}>
+                      <span className="md2-kpi-mini-value" style={{ color: '#f8fafc' }}>{totalComplaints}</span>
+                      <span className="md2-kpi-mini-label" style={{ fontWeight: 'bold' }}>Total Jobs</span>
+                    </div>
+                    {complaintsPie.map((c, i) => (
+                      <div key={c.name} className="md2-kpi-mini" style={{ borderLeft: `3px solid ${c.color || defaultComplaintsPie[i]?.color || '#0b4d8c'}` }}>
+                        <span className="md2-kpi-mini-value" style={{ color: c.color || defaultComplaintsPie[i]?.color }}>{c.value}</span>
+                        <span className="md2-kpi-mini-label" style={{ fontWeight: 'bold' }}>{c.name}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Centered VIEW COMPLAINTS Button */}
+                  <div style={{ display: 'flex', justifyContent: 'center', marginTop: '12px' }}>
+                    <button
+                      className="md2-view-complaints-btn"
+                      onClick={() => setShowComplaintsTable(true)}
+                      style={{
+                        background: 'linear-gradient(135deg, #0b4d8c 0%, #1e40af 100%)',
+                        color: '#ffffff',
+                        border: 'none',
+                        padding: '14px 32px',
+                        borderRadius: '10px',
+                        fontSize: '0.95rem',
+                        fontWeight: '700',
+                        letterSpacing: '0.5px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '10px',
+                        boxShadow: '0 4px 20px rgba(11, 77, 140, 0.4)',
+                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                      }}
+                    >
+                      <span>VIEW COMPLAINTS</span>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+                        <circle cx="12" cy="12" r="3" />
+                      </svg>
+                    </button>
+                  </div>
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="table-view"
+                  initial={{ opacity: 0, y: 80 }}
+                  animate={{ opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } }}
+                  exit={{ opacity: 0, y: 80, transition: { duration: 0.3 } }}
+                  style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '20px' }}
+                >
+                  {/* Complaints Card Panel */}
+                  <div className="md2-chart-panel md2-chart-panel--full md2-complaints-card" style={{ padding: '24px' }}>
+                    
+                    {/* Complaints Header */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', marginBottom: '20px' }}>
+                      <div>
+                        <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#f8fafc', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#2a9d8f' }}>
+                            <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" />
+                            <path d="m9 12 2 2 4-4" />
+                          </svg>
+                          Maintenance Complaints Ledger
+                        </h3>
+                        <p style={{ fontSize: '0.8rem', color: '#94a3b8', margin: '4px 0 0 0' }}>
+                          Real-time complaint details extracted from the Daily Progress Report sheet.
+                        </p>
+                      </div>
+                      
+                      {/* Controls: Go back to Charts */}
+                      <button
+                        className="md2-back-charts-btn"
+                        onClick={() => setShowComplaintsTable(false)}
+                        style={{
+                          background: 'rgba(255, 255, 255, 0.08)',
+                          border: '1px solid rgba(255, 255, 255, 0.1)',
+                          color: '#f8fafc',
+                          padding: '10px 20px',
+                          borderRadius: '8px',
+                          fontSize: '0.85rem',
+                          fontWeight: '600',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          transition: 'all 0.2s ease',
+                        }}
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="15 18 9 12 15 6" />
+                        </svg>
+                        <span>Back to Charts</span>
+                      </button>
+                    </div>
+
+                    {/* Complaints Table */}
+                    <div style={{ overflowX: 'auto', background: 'rgba(15, 23, 42, 0.3)', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem', textAlign: 'left' }}>
+                        <thead>
+                          <tr style={{ background: 'rgba(15, 23, 42, 0.6)', borderBottom: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                            <th style={{ padding: '16px 20px', fontWeight: '700', color: '#f1f5f9', width: '120px' }}>Department</th>
+                            <th style={{ padding: '16px 20px', fontWeight: '700', color: '#f1f5f9', width: '100px' }}>Job No</th>
+                            <th style={{ padding: '16px 20px', fontWeight: '700', color: '#f1f5f9' }}>Complaint Description</th>
+                            <th style={{ padding: '16px 20px', fontWeight: '700', color: '#f1f5f9' }}>Completed Details</th>
+                            <th style={{ padding: '16px 20px', fontWeight: '700', color: '#f1f5f9' }}>Pending Details</th>
+                            <th style={{ padding: '16px 20px', fontWeight: '700', color: '#f1f5f9', width: '120px' }}>Feedback</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {complaintsList.length === 0 ? (
+                            <tr>
+                              <td colSpan={6} style={{ padding: '30px', textAlign: 'center', color: '#94a3b8' }}>
+                                No complaints logged in this report.
+                              </td>
+                            </tr>
+                          ) : (
+                            complaintsList.map((comp, idx) => {
+                              // Department specific colors
+                              let deptColor = 'rgba(255,255,255,0.08)';
+                              let deptBorder = 'rgba(255,255,255,0.15)';
+                              let deptTextColor = '#ffffff';
+
+                              if (comp.department === 'Civil') {
+                                deptColor = 'rgba(192, 41, 58, 0.15)';
+                                deptBorder = 'rgba(192, 41, 58, 0.3)';
+                                deptTextColor = '#f87171';
+                              } else if (comp.department === 'Plumbing') {
+                                deptColor = 'rgba(11, 77, 140, 0.15)';
+                                deptBorder = 'rgba(11, 77, 140, 0.3)';
+                                deptTextColor = '#60a5fa';
+                              } else if (comp.department === 'Seepage') {
+                                deptColor = 'rgba(224, 122, 95, 0.15)';
+                                deptBorder = 'rgba(224, 122, 95, 0.3)';
+                                deptTextColor = '#fb923c';
+                              } else if (comp.department === 'Carpentry') {
+                                deptColor = 'rgba(42, 157, 143, 0.15)';
+                                deptBorder = 'rgba(42, 157, 143, 0.3)';
+                                deptTextColor = '#34d399';
+                              } else if (comp.department === 'Electrical') {
+                                deptColor = 'rgba(71, 85, 105, 0.15)';
+                                deptBorder = 'rgba(71, 85, 105, 0.3)';
+                                deptTextColor = '#cbd5e1';
+                              }
+
+                              return (
+                                <tr
+                                  key={idx}
+                                  style={{
+                                    borderBottom: '1px solid rgba(255, 255, 255, 0.04)',
+                                    background: idx % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.01)',
+                                    transition: 'background 0.2s ease',
+                                  }}
+                                  onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; }}
+                                  onMouseLeave={(e) => { e.currentTarget.style.background = idx % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.01)'; }}
+                                >
+                                  {/* Department tag */}
+                                  <td style={{ padding: '14px 20px' }}>
+                                    <span
+                                      style={{
+                                        background: deptColor,
+                                        border: `1px solid ${deptBorder}`,
+                                        color: deptTextColor,
+                                        padding: '4px 10px',
+                                        borderRadius: '6px',
+                                        fontSize: '0.75rem',
+                                        fontWeight: '700',
+                                        display: 'inline-block',
+                                      }}
+                                    >
+                                      {comp.department || 'General'}
+                                    </span>
+                                  </td>
+                                  
+                                  {/* Job No */}
+                                  <td style={{ padding: '14px 20px', color: '#f8fafc', fontWeight: '600' }}>
+                                    {comp.jobNo || '—'}
+                                  </td>
+                                  
+                                  {/* Description */}
+                                  <td style={{ padding: '14px 20px', color: '#cbd5e1', lineHeight: '1.4' }}>
+                                    {comp.description || '—'}
+                                  </td>
+                                  
+                                  {/* Completed details */}
+                                  <td style={{ padding: '14px 20px' }}>
+                                    {comp.completedDetails ? (
+                                      <span
+                                        style={{
+                                          color: '#34d399',
+                                          background: 'rgba(52, 211, 153, 0.08)',
+                                          border: '1px solid rgba(52, 211, 153, 0.2)',
+                                          padding: '4px 10px',
+                                          borderRadius: '6px',
+                                          fontWeight: '600',
+                                          fontSize: '0.8rem',
+                                          display: 'inline-block',
+                                        }}
+                                      >
+                                        ✓ {comp.completedDetails}
+                                      </span>
+                                    ) : (
+                                      <span style={{ color: 'rgba(255,255,255,0.15)' }}>—</span>
+                                    )}
+                                  </td>
+                                  
+                                  {/* Pending details */}
+                                  <td style={{ padding: '14px 20px' }}>
+                                    {comp.pendingDetails ? (
+                                      <span
+                                        style={{
+                                          color: '#fbbf24',
+                                          background: 'rgba(251, 191, 36, 0.08)',
+                                          border: '1px solid rgba(251, 191, 36, 0.2)',
+                                          padding: '4px 10px',
+                                          borderRadius: '6px',
+                                          fontWeight: '600',
+                                          fontSize: '0.8rem',
+                                          display: 'inline-block',
+                                        }}
+                                      >
+                                        ⚠ {comp.pendingDetails}
+                                      </span>
+                                    ) : (
+                                      <span style={{ color: 'rgba(255,255,255,0.15)' }}>—</span>
+                                    )}
+                                  </td>
+                                  
+                                  {/* Feedback */}
+                                  <td style={{ padding: '14px 20px', color: '#94a3b8' }}>
+                                    {comp.feedback ? (
+                                      <span
+                                        style={{
+                                          color: '#cbd5e1',
+                                          background: 'rgba(203, 213, 225, 0.1)',
+                                          padding: '2px 8px',
+                                          borderRadius: '4px',
+                                          fontSize: '0.75rem',
+                                          fontWeight: '600',
+                                        }}
+                                      >
+                                        {comp.feedback}
+                                      </span>
+                                    ) : (
+                                      <span style={{ color: 'rgba(255,255,255,0.15)' }}>—</span>
+                                    )}
+                                  </td>
+                                </tr>
+                              );
+                            })
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </motion.div>
         );
 
@@ -1043,8 +1467,18 @@ export default function MainDashboard() {
                 {user?.name && `· ${user.name}`} · JSW Group · Township Management Portal
               </span>
             </div>
-            {/* Export button */}
+            {/* Bottom Actions */}
             <div style={{ display: 'flex', gap: '12px' }}>
+              {importedData && (
+                <button className="md2-action-btn md2-action-btn--remove" onClick={handleRemoveData} title="Remove Ingested Data">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }}>
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                    <line x1="9" y1="9" x2="15" y2="15" />
+                    <line x1="15" y1="9" x2="9" y2="15" />
+                  </svg>
+                  <span>Remove Data</span>
+                </button>
+              )}
               <button className="md2-action-btn md2-action-btn--export" onClick={handleExport} title="Export to Excel">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }}>
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />

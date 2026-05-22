@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: jsw-dpr-dashboard
+    env: node
+    plan: free
+    buildCommand: "npm install && npm install --prefix backend && npm run build"
+    startCommand: "npm start"
+    envVars:
+      - key: PORT
+        value: 5000
+      - key: MONGODB_URI
+        sync: false
+        placeholder: "Paste your MongoDB Atlas Connection String here"
+      - key: JWT_SECRET
+        generateValue: true
+      - key: NODE_VERSION
+        value: 22

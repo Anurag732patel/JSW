@@ -1377,6 +1377,18 @@ body {
   box-shadow: 0 6px 20px rgba(42, 157, 143, 0.2);
 }
 
+.md2-action-btn--remove {
+  background: linear-gradient(135deg, rgba(192, 41, 58, 0.15), rgba(192, 41, 58, 0.05));
+  border-color: rgba(192, 41, 58, 0.35);
+}
+
+.md2-action-btn--remove:hover {
+  background: linear-gradient(135deg, rgba(192, 41, 58, 0.35), rgba(192, 41, 58, 0.15));
+  border-color: rgba(192, 41, 58, 0.6);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(192, 41, 58, 0.25);
+}
+
 .md2-action-btn--import {
   background: linear-gradient(135deg, rgba(230, 57, 70, 0.15), rgba(230, 57, 70, 0.05));
   border-color: rgba(230, 57, 70, 0.3);
