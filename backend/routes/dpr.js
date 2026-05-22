@@ -84,6 +84,160 @@ const DEFAULT_SECTIONS = {
     { name: 'Pappi Devi\nExt. Wall', target: 500, done: 135.84 },
     { name: 'Manoj Ent.\nInt. Wall', target: 5000, done: 5089.73 },
     { name: 'Manoj Ent.\nExt. Wall', target: 500, done: 405.85 },
+  ],
+  complaintsList: [
+    {
+      department: 'Civil',
+      jobNo: '5064',
+      description: 'Entrance grill painting work start at M3 building ground floor',
+      completedDetails: '',
+      pendingDetails: 'work in progress',
+      feedback: ''
+    },
+    {
+      department: 'Civil',
+      jobNo: '5317',
+      description: 'Vehicle parking painting near L & M block',
+      completedDetails: '',
+      pendingDetails: 'Work stopped for certain time due to rain',
+      feedback: ''
+    },
+    {
+      department: 'Civil',
+      jobNo: '',
+      description: 'N & O Block parking painting',
+      completedDetails: '',
+      pendingDetails: 'Work stopped for certain time due to rain',
+      feedback: ''
+    },
+    {
+      department: 'Civil',
+      jobNo: '',
+      description: 'E3-701 Putty & painting work',
+      completedDetails: '',
+      pendingDetails: 'Work in progress',
+      feedback: ''
+    },
+    {
+      department: 'Civil',
+      jobNo: '',
+      description: 'NEW GET D-914 Putty & painting work',
+      completedDetails: '',
+      pendingDetails: 'Work in progress',
+      feedback: ''
+    },
+    {
+      department: 'Civil',
+      jobNo: '',
+      description: 'A & C Block no parking painting',
+      completedDetails: '',
+      pendingDetails: 'Work in progress',
+      feedback: ''
+    },
+    {
+      department: 'Civil',
+      jobNo: '',
+      description: 'D-001 Putty & painting',
+      completedDetails: '',
+      pendingDetails: 'Work in progress',
+      feedback: ''
+    },
+    {
+      department: 'Civil',
+      jobNo: '',
+      description: 'E3-603 Kitchen sink repairing',
+      completedDetails: '',
+      pendingDetails: 'Work in progress',
+      feedback: ''
+    },
+    {
+      department: 'Civil',
+      jobNo: '',
+      description: 'C-203(Vacant room) Both bathroom wall tiles fixing',
+      completedDetails: '',
+      pendingDetails: 'Work in progress',
+      feedback: ''
+    },
+    {
+      department: 'Civil',
+      jobNo: '',
+      description: 'NEW GET CF-102(Vacant room) Full flat painting',
+      completedDetails: '',
+      pendingDetails: 'Work in progress',
+      feedback: ''
+    },
+    {
+      department: 'Civil',
+      jobNo: '',
+      description: 'H-604 Putty & painting',
+      completedDetails: '',
+      pendingDetails: 'Work in progress',
+      feedback: ''
+    },
+    {
+      department: 'Civil',
+      jobNo: '',
+      description: 'M3-604(Vacant room) Full flat painting',
+      completedDetails: '',
+      pendingDetails: 'Work in progress',
+      feedback: ''
+    },
+    {
+      department: 'Civil',
+      jobNo: '',
+      description: 'Temple lord Vishwakarma stage marble work',
+      completedDetails: '',
+      pendingDetails: 'Work in progress',
+      feedback: ''
+    },
+    {
+      department: 'Plumbing',
+      jobNo: '',
+      description: 'FU1-005 Kitchen sink waste coupling damage',
+      completedDetails: 'New installed',
+      pendingDetails: '',
+      feedback: 'Outstanding'
+    },
+    {
+      department: 'Plumbing',
+      jobNo: '',
+      description: 'E3-601 Kitchen sink cock damage',
+      completedDetails: 'New installed',
+      pendingDetails: '',
+      feedback: 'Outstanding'
+    },
+    {
+      department: 'Seepage',
+      jobNo: '5888',
+      description: 'E2-701 Balcony ceiling seepage',
+      completedDetails: '',
+      pendingDetails: 'Work will start as soon as possible',
+      feedback: ''
+    },
+    {
+      department: 'Seepage',
+      jobNo: '6769',
+      description: 'E2-804 Hall ceiling seepage',
+      completedDetails: '',
+      pendingDetails: 'Work will start as soon as possible',
+      feedback: ''
+    },
+    {
+      department: 'Seepage',
+      jobNo: '',
+      description: 'J-302 Master bedroom ceiling seepage',
+      completedDetails: '',
+      pendingDetails: 'Work will start as soon as possible',
+      feedback: ''
+    },
+    {
+      department: 'Seepage',
+      jobNo: '8893',
+      description: 'IB Basement floor seepage',
+      completedDetails: '',
+      pendingDetails: 'Work under progress',
+      feedback: ''
+    }
   ]
 };
 
@@ -213,7 +367,8 @@ function parseMaintSingleTab(rows) {
     manpowerMaint: [],
     paintProgress: [],
     complaintsPie: [],
-    complaintsStatus: []
+    complaintsStatus: [],
+    complaintsList: []
   };
 
   // 1. Manpower
@@ -266,55 +421,132 @@ function parseMaintSingleTab(rows) {
 
   // 3. Complaints
   const categoryKeys = {
-    'civil': { name: 'Civil', color: '#c0293a' },
-    'seepage': { name: 'Seepage', color: '#e07a5f' },
-    'carpentry': { name: 'Carpentry', color: '#2a9d8f' },
-    'plumbing': { name: 'Plumbing', color: '#0b4d8c' },
-    'electrical': { name: 'Electrical', color: '#475569' }
+    'civil': { name: 'Civil', color: '#c0293a', aliases: ['civil'] },
+    'seepage': { name: 'Seepage', color: '#e07a5f', aliases: ['seepage'] },
+    'carpentry': { name: 'Carpentry', color: '#2a9d8f', aliases: ['carpentry', 'carpenter'] },
+    'plumbing': { name: 'Plumbing', color: '#0b4d8c', aliases: ['plumb', 'plumbing', 'plumber'] },
+    'electrical': { name: 'Electrical', color: '#475569', aliases: ['electric', 'electrical', 'electrician'] }
   };
 
   let currentCategory = null;
+  
+  // Default indices based on the standard JSW sheet template
+  let jobNoIdx = 2;
+  let descIdx = 3;
+  let completedIdx = 4;
+  let pendingIdx = 5;
+  let feedbackIdx = 6;
+
   rows.forEach((row) => {
-    if (!row) return;
+    if (!row || !Array.isArray(row)) return;
+
+    // A. Dynamic Column Header Detection:
+    // We only treat a row as a header row if it contains key unique descriptors of the complaint ledger header.
+    let isPotentialHeaderRow = false;
+    row.forEach((cell) => {
+      const cellStr = String(cell || '').trim().toLowerCase();
+      if (
+        cellStr.includes('job no') || cellStr === 'jobno' || cellStr === 'job.no' ||
+        cellStr.includes('complain received') || cellStr === 'work description' || 
+        cellStr.includes('complaint details') || cellStr.includes('description of complain')
+      ) {
+        isPotentialHeaderRow = true;
+      }
+    });
+
+    if (isPotentialHeaderRow) {
+      row.forEach((cell, idx) => {
+        const cellStr = String(cell || '').trim().toLowerCase();
+        if (cellStr.includes('job no') || cellStr === 'jobno' || cellStr === 'job.no') {
+          jobNoIdx = idx;
+        } else if (cellStr.includes('complain received') || cellStr === 'work description' || cellStr.includes('complaint details') || cellStr.includes('description of complain')) {
+          descIdx = idx;
+        } else if (cellStr.includes('completed details') || cellStr === 'complain completed' || cellStr === 'action taken' || cellStr === 'completed') {
+          completedIdx = idx;
+        } else if (cellStr.includes('pending details') || cellStr === 'pending' || cellStr.includes('outstanding')) {
+          pendingIdx = idx;
+        } else if (cellStr === 'feedback' || cellStr.includes('feedback details')) {
+          feedbackIdx = idx;
+        }
+      });
+      return; // Skip headers row from list
+    }
+
     const col0 = String(row[0] || '').trim();
     const col1 = String(row[1] || '').trim();
 
-    // Check if it's a category header e.g. "(i) Civil Work", "(ii) Plumbing Work"
-    if (col0.startsWith('(') && col1.toLowerCase().includes('work')) {
-      const matched = Object.keys(categoryKeys).find(k => col1.toLowerCase().includes(k));
-      if (matched) {
-        currentCategory = categoryKeys[matched].name;
-        if (!parsed.complaintsStatus.some(s => s.name === currentCategory)) {
-          parsed.complaintsStatus.push({ name: currentCategory, completed: 0, inProgress: 0, pending: 0 });
+    // B. Category Header Detection:
+    // Scan all cells in the row to find parenthetical numbering or department name indicators.
+    let detectedMatchedCategory = null;
+    row.forEach((cell) => {
+      const cellStr = String(cell || '').trim();
+      const cellLower = cellStr.toLowerCase();
+
+      Object.keys(categoryKeys).forEach(k => {
+        const matchFound = categoryKeys[k].aliases.some(alias => cellLower.includes(alias));
+        if (matchFound) {
+          const hasNumbering = cellStr.startsWith('(') || cellStr.match(/^\d+/) || row.some(c => String(c || '').trim().startsWith('('));
+          if (hasNumbering || cellLower.includes('work') || cellLower.includes('job') || cellLower.includes('section') || cellLower.includes('dept')) {
+            detectedMatchedCategory = categoryKeys[k].name;
+          }
         }
+      });
+    });
+
+    if (detectedMatchedCategory) {
+      currentCategory = detectedMatchedCategory;
+      if (!parsed.complaintsStatus.some(s => s.name === currentCategory)) {
+        parsed.complaintsStatus.push({ name: currentCategory, completed: 0, inProgress: 0, pending: 0 });
       }
-      // Do NOT return so we process this category header row as the first complaint row too!
+      
+      const jobNoColVal = String(row[jobNoIdx] || '').trim();
+      const descColVal = String(row[descIdx] || '').trim();
+      const completedColVal = String(row[completedIdx] || '').trim();
+      const pendingColVal = String(row[pendingIdx] || '').trim();
+      const isHeaderLabel = descColVal === 'Complain Received from details' || descColVal === 'Work Description' || descColVal === 'Description of Complain';
+      
+      if (isHeaderLabel || (!jobNoColVal && !descColVal && !completedColVal && !pendingColVal)) {
+        return; // Category header matches and no complaint info on this row, safe to skip
+      }
     }
 
+    // C. Parsing Active Section:
     if (currentCategory) {
-      if (col1.includes('Total') && col1.includes('=')) {
+      // End of category section detection: any cell in first 3 columns contains 'total'
+      const hasTotal = row.slice(0, 3).some(cell => String(cell || '').toLowerCase().includes('total'));
+      if (hasTotal) {
         currentCategory = null;
         return;
       }
 
-      const descCol = String(row[3] || '').trim();
-      const completedCol = String(row[4] || '').trim();
-      const pendingCol = String(row[5] || '').trim();
+      const jobNoCol = String(row[jobNoIdx] || '').trim();
+      const descCol = String(row[descIdx] || '').trim();
+      const completedCol = String(row[completedIdx] || '').trim();
+      const pendingCol = String(row[pendingIdx] || '').trim();
 
-      // Skip the column definitions row
-      if (descCol === 'Complain Received from details' || descCol === 'Work Description') {
+      // Extra verification to skip column labels
+      if (descCol === 'Complain Received from details' || descCol === 'Work Description' || descCol === 'Description of Complain') {
         return;
       }
 
-      if (descCol || completedCol || pendingCol) {
+      if (jobNoCol || descCol || completedCol || pendingCol) {
         const statusEntry = parsed.complaintsStatus.find(s => s.name === currentCategory);
         if (statusEntry) {
-          // Identify completed complaints
+          // Identify completed complaints vs pending vs in-progress
+          const completedNorm = completedCol.toLowerCase();
+          const pendingNorm = pendingCol.toLowerCase();
+
           const isCompleted = completedCol && 
-                              !completedCol.toLowerCase().includes('pending') && 
-                              !completedCol.toLowerCase().includes('progress') &&
-                              !completedCol.toLowerCase().includes('outstanding');
-          const isPending = pendingCol && (pendingCol.toLowerCase().includes('pending') || pendingCol.toLowerCase().includes('will start'));
+                              !completedNorm.includes('pending') && 
+                              !completedNorm.includes('progress') &&
+                              !completedNorm.includes('outstanding') &&
+                              !completedNorm.includes('will start');
+                              
+          const isPending = pendingCol && (
+                            pendingNorm.includes('pending') || 
+                            pendingNorm.includes('will start') ||
+                            pendingNorm.includes('outstanding')
+                          );
 
           if (isCompleted) {
             statusEntry.completed += 1;
@@ -324,6 +556,16 @@ function parseMaintSingleTab(rows) {
             statusEntry.inProgress += 1;
           }
         }
+
+        // Add this complaint row to list
+        parsed.complaintsList.push({
+          department: currentCategory,
+          jobNo: jobNoCol,
+          description: descCol || `Complaint registered (Job No: ${jobNoCol || 'N/A'})`,
+          completedDetails: completedCol,
+          pendingDetails: pendingCol,
+          feedback: String(row[feedbackIdx] || '').trim()
+        });
       }
     }
   });
@@ -372,34 +614,34 @@ router.post('/import', (req, res, next) => {
 
     // Read workbook in memory
     const workbook = XLSX.read(req.file.buffer, { type: 'buffer' });
-    const firstSheetName = workbook.SheetNames[0];
-    const sheet = workbook.Sheets[firstSheetName];
-    const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-
-    if (rows.length === 0) {
-      return res.status(400).json({ success: false, message: 'The uploaded Excel workbook contains an empty sheet.' });
+    if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
+      return res.status(400).json({ success: false, message: 'The uploaded Excel workbook contains no sheets.' });
     }
 
-    // 1. Detect sheet category based on sheet names or row text content
-    let detectedCategory = null; // 'FB' or 'MAINT'
-    const nameNorm = firstSheetName.toLowerCase();
-    const firstRowText = rows.slice(0, 3).map(r => r.join(' ')).join(' ').toLowerCase();
-
-    if (nameNorm.includes('f&b') || firstRowText.includes('township guest house') || firstRowText.includes('canteen')) {
-      detectedCategory = 'FB';
-    } else if (nameNorm.includes('maintenanc') || firstRowText.includes('township maintenance')) {
-      detectedCategory = 'MAINT';
-    }
-
+    // 1. Detect and parse sheet categories based on all sheets in the workbook
     let parsedData = {};
+    let processedAny = false;
 
-    if (detectedCategory === 'FB') {
-      console.log(`📡 Ingesting Single-Tab F&B Report for date ${reportDate}...`);
-      parsedData = parseFbSingleTab(rows);
-    } else if (detectedCategory === 'MAINT') {
-      console.log(`📡 Ingesting Single-Tab Maintenance Report for date ${reportDate}...`);
-      parsedData = parseMaintSingleTab(rows);
-    } else {
+    workbook.SheetNames.forEach((sheetName) => {
+      const sheet = workbook.Sheets[sheetName];
+      const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+      if (rows.length === 0) return;
+
+      const nameNorm = sheetName.toLowerCase();
+      const firstRowText = rows.slice(0, 3).map(r => r.join(' ')).join(' ').toLowerCase();
+
+      if (nameNorm.includes('f&b') || firstRowText.includes('township guest house') || firstRowText.includes('canteen')) {
+        console.log(`📡 Ingesting Sheet [${sheetName}] as F&B Report for date ${reportDate}...`);
+        parsedData = { ...parsedData, ...parseFbSingleTab(rows) };
+        processedAny = true;
+      } else if (nameNorm.includes('maintenanc') || firstRowText.includes('township maintenance')) {
+        console.log(`📡 Ingesting Sheet [${sheetName}] as Maintenance Report for date ${reportDate}...`);
+        parsedData = { ...parsedData, ...parseMaintSingleTab(rows) };
+        processedAny = true;
+      }
+    });
+
+    if (!processedAny) {
       // Fallback: Original tab-based synonyms parser
       console.log(`🔄 No single-tab signature identified. Falling back to multi-tab synonyms retriever...`);
       const tabs = {};
@@ -583,4 +825,30 @@ router.get('/report/:date', async (req, res) => {
   }
 });
 
+// @route   DELETE /api/dpr/report/:date
+// @desc    Delete structured report data for a specific date (YYYY-MM-DD)
+// @access  Public
+router.delete('/report/:date', async (req, res) => {
+  try {
+    const { date } = req.params;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      return res.status(400).json({ success: false, message: 'Invalid date parameter. Format: YYYY-MM-DD' });
+    }
+
+    const report = await DprReport.findOneAndDelete({ reportDate: date });
+    if (!report) {
+      return res.status(404).json({ success: false, message: `No report found for date ${date}` });
+    }
+
+    res.json({
+      success: true,
+      message: `Successfully deleted report for date ${date}`
+    });
+  } catch (error) {
+    console.error('Delete report error:', error.message);
+    res.status(500).json({ success: false, message: 'Failed to delete report.', error: error.message });
+  }
+});
+
 module.exports = router;
+

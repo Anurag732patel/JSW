@@ -171,7 +171,12 @@ export default function Dashboard() {
                 href={item.href}
                 className="nav-link"
                 style={{ cursor: 'pointer', position: 'relative' }}
-                onClick={item.onClick}
+                onClick={(e) => {
+                  if (item.onClick) {
+                    e.preventDefault();
+                    item.onClick();
+                  }
+                }}
                 onMouseEnter={() => setHoveredTab(item.id)}
               >
                 {hoveredTab === item.id && (
@@ -218,21 +223,6 @@ export default function Dashboard() {
                     <div className="dropdown-role">{user?.role}</div>
                   </div>
                 </div>
-                <div className="dropdown-divider"></div>
-                <button className="dropdown-item" onClick={() => setShowProfileMenu(false)}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                    <circle cx="12" cy="7" r="4" />
-                  </svg>
-                  My Profile
-                </button>
-                <button className="dropdown-item" onClick={() => setShowProfileMenu(false)}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <circle cx="12" cy="12" r="3" />
-                    <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
-                  </svg>
-                  Settings
-                </button>
                 <div className="dropdown-divider"></div>
                 <button id="logout-button" className="dropdown-item logout-item" onClick={handleLogout}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -305,7 +295,7 @@ export default function Dashboard() {
                   {/* Go to Dashboard Button */}
                   <button
                     className={`slide-cta ${currentSlide === index ? 'animate-in' : ''}`}
-                    onClick={scrollToDashboard}
+                    onClick={() => navigate('/main-dashboard')}
                   >
                     <span>GO TO DASHBOARD</span>
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
