@@ -35,7 +35,7 @@ app.get('/api/health', (req, res) => {
 // ✅ SERVE FRONTEND (VERY IMPORTANT)
 app.use(express.static(path.join(__dirname, "../dist")));
 
-app.get("*", (req, res) => {
+app.get("*all", (req, res) => {
   res.sendFile(path.join(__dirname, "../dist/index.html"));
 });
 
