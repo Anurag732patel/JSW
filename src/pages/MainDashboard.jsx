@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -65,11 +65,11 @@ const defaultManpowerMaint = [
 
 // Sheet 2 — Complaints by category
 const defaultComplaintsPie = [
-  { name: 'Civil', value: 13, color: '#e63946' },
-  { name: 'Seepage', value: 26, color: '#f4a261' },
+  { name: 'Civil', value: 13, color: '#c0293a' },
+  { name: 'Seepage', value: 26, color: '#e07a5f' },
   { name: 'Carpentry', value: 12, color: '#2a9d8f' },
-  { name: 'Plumbing', value: 2, color: '#457b9d' },
-  { name: 'Electrical', value: 3, color: '#a8dadc' },
+  { name: 'Plumbing', value: 2, color: '#0b4d8c' },
+  { name: 'Electrical', value: 3, color: '#475569' },
 ];
 
 // Sheet 2 — Complaints status
@@ -112,11 +112,94 @@ export default function MainDashboard() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
+  const profileMenuRef = useRef(null);
+  const dateDropdownRef = useRef(null);
 
   const [activeSection, setActiveSection] = useState('guest-house');
   const [sectionsPanelOpen, setSectionsPanelOpen] = useState(false);
   const [importedData, setImportedData] = useState(null);
   const [importFileName, setImportFileName] = useState('');
+  const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analyzingStep, setAnalyzingStep] = useState('');
+
+  // ─── Historical Navigation & Ingestion States ───
+  const [availableDates, setAvailableDates] = useState([]);
+  const [selectedDate, setSelectedDate] = useState('');
+  const [dateDropdownOpen, setDateDropdownOpen] = useState(false);
+  const [showDateModal, setShowDateModal] = useState(false);
+  const [pendingFile, setPendingFile] = useState(null);
+  const [inputDate, setInputDate] = useState('');
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target)) {
+        setProfileDropdownOpen(false);
+      }
+      if (dateDropdownRef.current && !dateDropdownRef.current.contains(event.target)) {
+        setDateDropdownOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Fetch report data for a specific date
+  const fetchReportForDate = async (date) => {
+    try {
+      const res = await fetch(`/api/dpr/report/${date}`);
+
+      let result;
+      const contentType = res.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        result = await res.json();
+      } else {
+        const text = await res.text();
+        const cleanText = text.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+        alert(`Server Error: ${cleanText || `Status ${res.status}`}`);
+        return;
+      }
+
+      if (result.success) {
+        setImportedData(result.data);
+        setImportFileName(result.filename);
+        setSelectedDate(date);
+      } else {
+        alert(`Failed to load report: ${result.message}`);
+      }
+    } catch (err) {
+      console.error("Failed to fetch report for date:", err);
+      alert("Error contacting JSW backend server. Verify connection.");
+    }
+  };
+
+  // Fetch available dates on mount (without automatically loading a report data)
+  useEffect(() => {
+    const loadInitialData = async () => {
+      try {
+        const res = await fetch('/api/dpr/dates');
+
+        let result;
+        const contentType = res.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+          result = await res.json();
+        } else {
+          console.error("Non-JSON response fetched for dates:", res.status);
+          return;
+        }
+
+        if (result.success && result.dates) {
+          setAvailableDates(result.dates);
+          // Auto-load on mount is disabled to show a clean upload prompt initially.
+          // Users can select any historical date from the calendar dropdown or upload a new spreadsheet.
+        }
+      } catch (err) {
+        console.error("Failed to load initial dates:", err);
+      }
+    };
+    loadInitialData();
+  }, []);
 
   // ─── Compute KPI values ──────────────────────────────────────────
   const mealData = importedData?.mealData || [];
@@ -139,48 +222,94 @@ export default function MainDashboard() {
 
   const currentSection = SECTIONS.find(s => s.id === activeSection);
 
-  // ─── Import Handler ───────────────────────────────────────────────
-  const handleImport = (e) => {
+  // ─── Import Handlers (Database-backed Ingestion) ───────────────────
+  const handleFileSelect = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    setImportFileName(file.name);
+    setPendingFile(file);
+    // Pre-fill date input with today's date in local YYYY-MM-DD
+    const today = new Date();
+    const offset = today.getTimezoneOffset();
+    const localDate = new Date(today.getTime() - (offset * 60 * 1000));
+    const formattedDate = localDate.toISOString().split('T')[0];
+    setInputDate(formattedDate);
+    setShowDateModal(true);
+    e.target.value = ''; // Reset file input
+  };
 
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-      try {
-        const workbook = XLSX.read(evt.target.result, { type: 'binary' });
-        const parsed = {};
+  const handleImportConfirm = async () => {
+    if (!pendingFile || !inputDate) return;
+    setShowDateModal(false);
+    setImportFileName(pendingFile.name);
+    setIsAnalyzing(true);
+    setAnalyzingStep('Est. Secure Connection with JSW Backend...');
 
-        workbook.SheetNames.forEach((sheetName) => {
-          const sheet = workbook.Sheets[sheetName];
-          const json = XLSX.utils.sheet_to_json(sheet);
-          parsed[sheetName] = json;
-        });
+    try {
+      const formData = new FormData();
+      formData.append('file', pendingFile);
+      formData.append('reportDate', inputDate);
+      formData.append('uploadedBy', user?.name || 'System Administrator');
 
-        // Map imported sheets to data sections
-        const imported = {};
-        if (parsed['MealData'] || parsed['Meals'] || parsed['Sheet1']) {
-          const src = parsed['MealData'] || parsed['Meals'] || parsed['Sheet1'];
-          if (src.length > 0 && src[0].name !== undefined) {
-            imported.mealData = src;
-          }
-        }
-        if (parsed['GuestHouse']) imported.guestHouseData = parsed['GuestHouse'];
-        if (parsed['Vehicles'] || parsed['Fleet']) imported.vehicleData = parsed['Vehicles'] || parsed['Fleet'];
-        if (parsed['ManpowerFB']) imported.manpowerFB = parsed['ManpowerFB'];
-        if (parsed['ManpowerMaint']) imported.manpowerMaint = parsed['ManpowerMaint'];
-        if (parsed['Complaints']) imported.complaintsPie = parsed['Complaints'];
-        if (parsed['ComplaintsStatus']) imported.complaintsStatus = parsed['ComplaintsStatus'];
-        if (parsed['PaintProgress']) imported.paintProgress = parsed['PaintProgress'];
+      const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-        setImportedData(Object.keys(imported).length > 0 ? imported : parsed);
-      } catch (err) {
-        console.error('Import error:', err);
-        alert('Failed to parse Excel file. Please check the format.');
+      await delay(400);
+      setAnalyzingStep('Uploading spreadsheet (multipart/form-data)...');
+
+      const responsePromise = fetch('/api/dpr/import', {
+        method: 'POST',
+        body: formData,
+      });
+
+      await delay(500);
+      setAnalyzingStep('Scanning workbook sheets in Node.js memory buffer...');
+
+      await delay(500);
+      setAnalyzingStep('Running mapping algorithms on Excel columns...');
+
+      await delay(400);
+      setAnalyzingStep('Validating schema metrics & running Recharts parser...');
+
+      const response = await responsePromise;
+
+      let result;
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        result = await response.json();
+      } else {
+        const text = await response.text();
+        // Remove HTML tags for clean alert display if it is an HTML error page
+        const cleanText = text.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+        throw new Error(cleanText || `Server returned status ${response.status}`);
       }
-    };
-    reader.readAsBinaryString(file);
-    e.target.value = '';
+
+      if (!response.ok) {
+        throw new Error(result?.message || `Upload failed with status ${response.status}`);
+      }
+
+      if (result.success) {
+        await delay(300);
+        setAnalyzingStep('Finalizing database upsert...');
+        await delay(200);
+        setImportedData(result.data);
+        setSelectedDate(inputDate);
+
+        // Refresh available dates list and highlight new report
+        const datesRes = await fetch('/api/dpr/dates');
+        const datesResult = await datesRes.json();
+        if (datesResult.success && datesResult.dates) {
+          setAvailableDates(datesResult.dates);
+        }
+      } else {
+        throw new Error(result.message || 'Excel processing failed');
+      }
+    } catch (err) {
+      console.error('Import error:', err);
+      alert(`Import Failed: ${err.message || 'Server error. Please ensure your backend is running.'}`);
+    } finally {
+      setIsAnalyzing(false);
+      setAnalyzingStep('');
+      setPendingFile(null);
+    }
   };
 
   // ─── Export Handler ───────────────────────────────────────────────
@@ -256,48 +385,51 @@ export default function MainDashboard() {
     }
 
     const contentVariants = {
-      initial: { opacity: 0, x: 20 },
-      animate: { opacity: 1, x: 0, transition: { duration: 0.35, ease: [0.22, 1, 0.36, 1] } },
-      exit: { opacity: 0, x: -20, transition: { duration: 0.2 } },
+      initial: { opacity: 0, scale: 0.98, y: 10 },
+      animate: { opacity: 1, scale: 1, y: 0, transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] } },
+      exit: { opacity: 0, scale: 0.98, y: -10, transition: { duration: 0.25 } },
     };
 
     switch (activeSection) {
       case 'guest-house':
         return (
-          <motion.div key="guest-house" {...contentVariants} className="md2-viz-content">
+          <motion.div key="guest-house" {...contentVariants} className="md2-viz-content md2-viz-container">
             <div className="md2-chart-grid">
               <div className="md2-chart-panel md2-chart-panel--large">
-                <p className="md2-chart-label">Rooms Available vs Occupied</p>
+                <p className="md2-chart-label" style={{ fontWeight: 'bold', color: '#f8fafc' }}>Rooms Available vs Occupied</p>
                 <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={guestHouseData} barGap={4}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.07)" />
-                    <XAxis dataKey="name" tick={{ fill: '#94a3b8', fontSize: 12 }} />
-                    <YAxis tick={{ fill: '#94a3b8', fontSize: 12 }} />
+                  <BarChart data={guestHouseData} barGap={6}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+                    <XAxis dataKey="name" tick={{ fill: '#ffffff', fontSize: 12, fontWeight: 'bold' }} stroke="rgba(255,255,255,0.2)" />
+                    <YAxis tick={{ fill: '#ffffff', fontSize: 12, fontWeight: 'bold' }} stroke="rgba(255,255,255,0.2)" />
                     <Tooltip {...TOOLTIP_STYLE} cursor={false} />
-                    <Legend wrapperStyle={{ color: '#94a3b8', fontSize: 12 }} />
-                    <Bar dataKey="total" name="Total Rooms" fill="#457b9d" radius={[4,4,0,0]} />
-                    <Bar dataKey="occupied" name="Occupied" fill="#e63946" radius={[4,4,0,0]} />
-                    <Bar dataKey="vacant" name="Vacant" fill="#2a9d8f" radius={[4,4,0,0]} />
+                    <Legend wrapperStyle={{ color: '#f8fafc', fontSize: 12, fontWeight: 'bold' }} />
+                    <Bar dataKey="total" name="Total Rooms" fill="#0b4d8c" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="occupied" name="Occupied" fill="#c0293a" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="vacant" name="Vacant" fill="#2a9d8f" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
               <div className="md2-chart-panel">
-                <p className="md2-chart-label">Occupancy Rate</p>
+                <p className="md2-chart-label" style={{ fontWeight: 'bold', color: '#f8fafc' }}>Occupancy Rate</p>
                 <ResponsiveContainer width="100%" height={300}>
                   <PieChart>
-                    <Pie data={[{ name: 'Occupied', value: occupiedRooms }, { name: 'Vacant', value: totalRooms - occupiedRooms }]}
-                      cx="50%" cy="50%" innerRadius={65} outerRadius={95}
-                      dataKey="value" paddingAngle={3}>
-                      <Cell fill="#e63946" />
-                      <Cell fill="rgba(255,255,255,0.08)" />
+                    <Pie data={[
+                      { name: 'Occupied', value: occupiedRooms },
+                      { name: 'Vacant', value: Math.max(0, totalRooms - occupiedRooms) }
+                    ]}
+                      cx="50%" cy="50%" innerRadius={70} outerRadius={95}
+                      dataKey="value" paddingAngle={4}>
+                      <Cell fill="#c0293a" />
+                      <Cell fill="#2a9d8f" />
                     </Pie>
                     <Tooltip {...TOOLTIP_STYLE} cursor={false} />
-                    <Legend wrapperStyle={{ color: '#94a3b8', fontSize: 12 }} />
-                    <text x="50%" y="48%" textAnchor="middle" dominantBaseline="middle">
-                      <tspan x="50%" dy="-2" fill="#ffffff" style={{ fontSize: '20px', fontWeight: '700' }}>
+                    <Legend wrapperStyle={{ color: '#f8fafc', fontSize: 12, fontWeight: 'bold' }} />
+                    <text x="50%" y="46%" textAnchor="middle" dominantBaseline="middle">
+                      <tspan x="50%" dy="0" fill="#ffffff" style={{ fontSize: '24px', fontWeight: '800' }}>
                         {totalRooms > 0 ? Math.round((occupiedRooms / totalRooms) * 100) : 0}%
                       </tspan>
-                      <tspan x="50%" dy="20" fill="#94a3b8" style={{ fontSize: '11px', fontWeight: '500', letterSpacing: '0.5px', textTransform: 'uppercase' }}>
+                      <tspan x="50%" dy="22" fill="#2a9d8f" style={{ fontSize: '11px', fontWeight: '700', letterSpacing: '0.8px', textTransform: 'uppercase' }}>
                         Occupied
                       </tspan>
                     </text>
@@ -307,9 +439,9 @@ export default function MainDashboard() {
             </div>
             <div className="md2-kpi-strip">
               {guestHouseData.map(g => (
-                <div key={g.name} className="md2-kpi-mini">
-                  <span className="md2-kpi-mini-value">{g.occupied}/{g.total}</span>
-                  <span className="md2-kpi-mini-label">{g.name}</span>
+                <div key={g.name} className="md2-kpi-mini" style={{ borderTop: '3px solid #0b4d8c' }}>
+                  <span className="md2-kpi-mini-value" style={{ color: '#f8fafc' }}>{g.occupied}/{g.total}</span>
+                  <span className="md2-kpi-mini-label" style={{ fontWeight: 'bold' }}>{g.name}</span>
                 </div>
               ))}
             </div>
@@ -318,33 +450,34 @@ export default function MainDashboard() {
 
       case 'meal-report':
         return (
-          <motion.div key="meal-report" {...contentVariants} className="md2-viz-content">
+          <motion.div key="meal-report" {...contentVariants} className="md2-viz-content md2-viz-container">
             <div className="md2-chart-grid">
               <div className="md2-chart-panel md2-chart-panel--full">
-                <p className="md2-chart-label">Meals by Location (Breakfast / Lunch / Dinner)</p>
+                <p className="md2-chart-label" style={{ fontWeight: 'bold', color: '#f8fafc' }}>Meals by Location (Breakfast / Lunch / Dinner)</p>
                 <ResponsiveContainer width="100%" height={320}>
-                  <BarChart data={mealData} barGap={2}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.07)" />
-                    <XAxis dataKey="name" tick={{ fill: '#94a3b8', fontSize: 11 }} />
-                    <YAxis tick={{ fill: '#94a3b8', fontSize: 12 }} />
+                  <BarChart data={mealData} barGap={4}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+                    <XAxis dataKey="name" tick={{ fill: '#ffffff', fontSize: 11, fontWeight: 'bold' }} stroke="rgba(255,255,255,0.2)" />
+                    <YAxis tick={{ fill: '#ffffff', fontSize: 12, fontWeight: 'bold' }} stroke="rgba(255,255,255,0.2)" />
                     <Tooltip {...TOOLTIP_STYLE} cursor={false} />
-                    <Legend wrapperStyle={{ color: '#94a3b8', fontSize: 12 }} />
-                    <Bar dataKey="breakfast" name="Breakfast" fill="#f4a261" radius={[3,3,0,0]} />
-                    <Bar dataKey="lunch" name="Lunch" fill="#e63946" radius={[3,3,0,0]} />
-                    <Bar dataKey="dinner" name="Dinner" fill="#457b9d" radius={[3,3,0,0]} />
+                    <Legend wrapperStyle={{ color: '#f8fafc', fontSize: 12, fontWeight: 'bold' }} />
+                    <Bar dataKey="breakfast" name="Breakfast" fill="#0b4d8c" radius={[3, 3, 0, 0]} />
+                    <Bar dataKey="lunch" name="Lunch" fill="#2a9d8f" radius={[3, 3, 0, 0]} />
+                    <Bar dataKey="dinner" name="Dinner" fill="#c0293a" radius={[3, 3, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
             </div>
             <div className="md2-kpi-strip">
-              {[{ label: 'Breakfast', val: totalBreakfast, color: '#f4a261' },
-                { label: 'Lunch', val: totalLunch, color: '#e63946' },
-                { label: 'Dinner', val: totalDinner, color: '#457b9d' },
-                { label: 'Total', val: totalMeals, color: '#2a9d8f' },
+              {[
+                { label: 'Breakfast', val: totalBreakfast, color: '#0b4d8c' },
+                { label: 'Lunch', val: totalLunch, color: '#2a9d8f' },
+                { label: 'Dinner', val: totalDinner, color: '#c0293a' },
+                { label: 'Total Meals', val: totalMeals, color: '#f8fafc' },
               ].map(m => (
-                <div key={m.label} className="md2-kpi-mini" style={{ borderLeft: `3px solid ${m.color}` }}>
+                <div key={m.label} className="md2-kpi-mini" style={{ borderLeft: `4px solid ${m.color}` }}>
                   <span className="md2-kpi-mini-value" style={{ color: m.color }}>{m.val.toLocaleString()}</span>
-                  <span className="md2-kpi-mini-label">{m.label}</span>
+                  <span className="md2-kpi-mini-label" style={{ fontWeight: 'bold' }}>{m.label}</span>
                 </div>
               ))}
             </div>
@@ -353,37 +486,39 @@ export default function MainDashboard() {
 
       case 'fb-manpower':
         return (
-          <motion.div key="fb-manpower" {...contentVariants} className="md2-viz-content">
+          <motion.div key="fb-manpower" {...contentVariants} className="md2-viz-content md2-viz-container">
             <div className="md2-chart-grid">
               <div className="md2-chart-panel md2-chart-panel--full">
-                <p className="md2-chart-label">Actual vs Present by Category</p>
+                <p className="md2-chart-label" style={{ fontWeight: 'bold', color: '#f8fafc' }}>Actual vs Present by Category</p>
                 <ResponsiveContainer width="100%" height={320}>
                   <BarChart data={manpowerFB} layout="vertical" barGap={4}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.07)" />
-                    <XAxis type="number" tick={{ fill: '#94a3b8', fontSize: 12 }} />
-                    <YAxis dataKey="name" type="category" width={100} tick={{ fill: '#94a3b8', fontSize: 11 }} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+                    <XAxis type="number" tick={{ fill: '#ffffff', fontSize: 12, fontWeight: 'bold' }} stroke="rgba(255,255,255,0.2)" />
+                    <YAxis dataKey="name" type="category" width={110} tick={{ fill: '#ffffff', fontSize: 11, fontWeight: 'bold' }} stroke="rgba(255,255,255,0.2)" />
                     <Tooltip {...TOOLTIP_STYLE} cursor={false} />
-                    <Legend wrapperStyle={{ color: '#94a3b8', fontSize: 12 }} />
-                    <Bar dataKey="actual" name="Actual" fill="#457b9d" radius={[0,4,4,0]} />
-                    <Bar dataKey="present" name="Present" fill="#2a9d8f" radius={[0,4,4,0]} />
+                    <Legend wrapperStyle={{ color: '#f8fafc', fontSize: 12, fontWeight: 'bold' }} />
+                    <Bar dataKey="actual" name="Actual" fill="#0b4d8c" radius={[0, 4, 4, 0]} />
+                    <Bar dataKey="present" name="Present" fill="#2a9d8f" radius={[0, 4, 4, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
             </div>
             <div className="md2-kpi-strip">
-              <div className="md2-kpi-mini">
-                <span className="md2-kpi-mini-value" style={{ color: '#457b9d' }}>{manpowerFB.reduce((s, m) => s + m.actual, 0)}</span>
-                <span className="md2-kpi-mini-label">Total Actual</span>
+              <div className="md2-kpi-mini" style={{ borderLeft: '4px solid #0b4d8c' }}>
+                <span className="md2-kpi-mini-value" style={{ color: '#0b4d8c' }}>{manpowerFB.reduce((s, m) => s + m.actual, 0)}</span>
+                <span className="md2-kpi-mini-label" style={{ fontWeight: 'bold' }}>Total Actual</span>
               </div>
-              <div className="md2-kpi-mini">
+              <div className="md2-kpi-mini" style={{ borderLeft: '4px solid #2a9d8f' }}>
                 <span className="md2-kpi-mini-value" style={{ color: '#2a9d8f' }}>{manpowerFB.reduce((s, m) => s + m.present, 0)}</span>
-                <span className="md2-kpi-mini-label">Total Present</span>
+                <span className="md2-kpi-mini-label" style={{ fontWeight: 'bold' }}>Total Present</span>
               </div>
-              <div className="md2-kpi-mini">
-                <span className="md2-kpi-mini-value" style={{ color: '#e63946' }}>
-                  {Math.round((manpowerFB.reduce((s, m) => s + m.present, 0) / manpowerFB.reduce((s, m) => s + m.actual, 0)) * 100)}%
+              <div className="md2-kpi-mini" style={{ borderLeft: '4px solid #c0293a' }}>
+                <span className="md2-kpi-mini-value" style={{ color: '#c0293a' }}>
+                  {manpowerFB.reduce((s, m) => s + m.actual, 0) > 0
+                    ? Math.round((manpowerFB.reduce((s, m) => s + m.present, 0) / manpowerFB.reduce((s, m) => s + m.actual, 0)) * 100)
+                    : 0}%
                 </span>
-                <span className="md2-kpi-mini-label">Attendance Rate</span>
+                <span className="md2-kpi-mini-label" style={{ fontWeight: 'bold' }}>Attendance Rate</span>
               </div>
             </div>
           </motion.div>
@@ -391,19 +526,19 @@ export default function MainDashboard() {
 
       case 'vehicle-fleet':
         return (
-          <motion.div key="vehicle-fleet" {...contentVariants} className="md2-viz-content">
+          <motion.div key="vehicle-fleet" {...contentVariants} className="md2-viz-content md2-viz-container">
             <div className="md2-chart-grid">
               <div className="md2-chart-panel md2-chart-panel--full">
-                <p className="md2-chart-label">Distance Covered per Vehicle Today · Total: {totalKm} km</p>
+                <p className="md2-chart-label" style={{ fontWeight: 'bold', color: '#f8fafc' }}>Distance Covered per Vehicle Today · Total: {totalKm} km</p>
                 <ResponsiveContainer width="100%" height={320}>
                   <BarChart data={vehicleData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.07)" />
-                    <XAxis dataKey="name" tick={{ fill: '#94a3b8', fontSize: 10 }} />
-                    <YAxis tick={{ fill: '#94a3b8', fontSize: 12 }} unit=" km" />
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+                    <XAxis dataKey="name" tick={{ fill: '#ffffff', fontSize: 10, fontWeight: 'bold' }} stroke="rgba(255,255,255,0.2)" />
+                    <YAxis tick={{ fill: '#ffffff', fontSize: 12, fontWeight: 'bold' }} stroke="rgba(255,255,255,0.2)" unit=" km" />
                     <Tooltip {...TOOLTIP_STYLE} cursor={false} />
-                    <Bar dataKey="km" name="Km Covered" radius={[4,4,0,0]}>
+                    <Bar dataKey="km" name="Km Covered" radius={[4, 4, 0, 0]}>
                       {vehicleData.map((_, i) => (
-                        <Cell key={i} fill={i % 2 === 0 ? '#2a9d8f' : '#457b9d'} />
+                        <Cell key={i} fill={i % 2 === 0 ? '#2a9d8f' : '#0b4d8c'} />
                       ))}
                     </Bar>
                   </BarChart>
@@ -411,17 +546,19 @@ export default function MainDashboard() {
               </div>
             </div>
             <div className="md2-kpi-strip">
-              <div className="md2-kpi-mini">
+              <div className="md2-kpi-mini" style={{ borderLeft: '4px solid #2a9d8f' }}>
                 <span className="md2-kpi-mini-value" style={{ color: '#2a9d8f' }}>{totalKm}</span>
-                <span className="md2-kpi-mini-label">Total Km Today</span>
+                <span className="md2-kpi-mini-label" style={{ fontWeight: 'bold' }}>Total Km Today</span>
               </div>
-              <div className="md2-kpi-mini">
-                <span className="md2-kpi-mini-value" style={{ color: '#457b9d' }}>{vehicleData.length}</span>
-                <span className="md2-kpi-mini-label">Vehicles Active</span>
+              <div className="md2-kpi-mini" style={{ borderLeft: '4px solid #0b4d8c' }}>
+                <span className="md2-kpi-mini-value" style={{ color: '#0b4d8c' }}>{vehicleData.length}</span>
+                <span className="md2-kpi-mini-label" style={{ fontWeight: 'bold' }}>Vehicles Active</span>
               </div>
-              <div className="md2-kpi-mini">
-                <span className="md2-kpi-mini-value" style={{ color: '#f4a261' }}>{Math.round(totalKm / vehicleData.length)}</span>
-                <span className="md2-kpi-mini-label">Avg Km/Vehicle</span>
+              <div className="md2-kpi-mini" style={{ borderLeft: '4px solid #c0293a' }}>
+                <span className="md2-kpi-mini-value" style={{ color: '#c0293a' }}>
+                  {vehicleData.length > 0 ? Math.round(totalKm / vehicleData.length) : 0}
+                </span>
+                <span className="md2-kpi-mini-label" style={{ fontWeight: 'bold' }}>Avg Km/Vehicle</span>
               </div>
             </div>
           </motion.div>
@@ -429,46 +566,46 @@ export default function MainDashboard() {
 
       case 'complaints':
         return (
-          <motion.div key="complaints" {...contentVariants} className="md2-viz-content">
+          <motion.div key="complaints" {...contentVariants} className="md2-viz-content md2-viz-container">
             <div className="md2-chart-grid">
               <div className="md2-chart-panel">
-                <p className="md2-chart-label">Jobs by Category</p>
+                <p className="md2-chart-label" style={{ fontWeight: 'bold', color: '#f8fafc' }}>Jobs by Category</p>
                 <ResponsiveContainer width="100%" height={300}>
                   <PieChart>
                     <Pie data={complaintsPie} cx="50%" cy="50%"
-                      outerRadius={100} dataKey="value" paddingAngle={3}
+                      outerRadius={95} dataKey="value" paddingAngle={3}
                       label={({ name, value }) => `${name}: ${value}`}
-                      labelLine={{ stroke: 'rgba(255,255,255,0.3)' }}>
-                      {complaintsPie.map((e, i) => <Cell key={i} fill={e.color} />)}
+                      labelLine={{ stroke: 'rgba(255,255,255,0.4)', strokeWidth: 1.5 }}>
+                      {complaintsPie.map((e, i) => <Cell key={i} fill={e.color || defaultComplaintsPie[i]?.color || '#0b4d8c'} />)}
                     </Pie>
                     <Tooltip {...TOOLTIP_STYLE} cursor={false} />
                   </PieChart>
                 </ResponsiveContainer>
               </div>
               <div className="md2-chart-panel md2-chart-panel--large">
-                <p className="md2-chart-label">Status by Category</p>
+                <p className="md2-chart-label" style={{ fontWeight: 'bold', color: '#f8fafc' }}>Status by Category</p>
                 <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={complaintsStatus} barGap={3}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.07)" />
-                    <XAxis dataKey="name" tick={{ fill: '#94a3b8', fontSize: 12 }} />
-                    <YAxis tick={{ fill: '#94a3b8', fontSize: 12 }} />
+                  <BarChart data={complaintsStatus} barGap={4}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+                    <XAxis dataKey="name" tick={{ fill: '#ffffff', fontSize: 12, fontWeight: 'bold' }} stroke="rgba(255,255,255,0.2)" />
+                    <YAxis tick={{ fill: '#ffffff', fontSize: 12, fontWeight: 'bold' }} stroke="rgba(255,255,255,0.2)" />
                     <Tooltip {...TOOLTIP_STYLE} cursor={false} />
-                    <Legend wrapperStyle={{ color: '#94a3b8', fontSize: 12 }} />
-                    <Bar dataKey="completed" name="Completed" fill="#2a9d8f" radius={[4,4,0,0]} />
-                    <Bar dataKey="inProgress" name="In Progress" fill="#f4a261" radius={[4,4,0,0]} />
+                    <Legend wrapperStyle={{ color: '#f8fafc', fontSize: 12, fontWeight: 'bold' }} />
+                    <Bar dataKey="completed" name="Completed" fill="#2a9d8f" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="inProgress" name="In Progress" fill="#c0293a" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
             </div>
             <div className="md2-kpi-strip">
-              <div className="md2-kpi-mini">
-                <span className="md2-kpi-mini-value" style={{ color: '#e63946' }}>{totalComplaints}</span>
-                <span className="md2-kpi-mini-label">Total Jobs</span>
+              <div className="md2-kpi-mini" style={{ borderLeft: '4px solid #f8fafc' }}>
+                <span className="md2-kpi-mini-value" style={{ color: '#f8fafc' }}>{totalComplaints}</span>
+                <span className="md2-kpi-mini-label" style={{ fontWeight: 'bold' }}>Total Jobs</span>
               </div>
-              {complaintsPie.map(c => (
-                <div key={c.name} className="md2-kpi-mini">
-                  <span className="md2-kpi-mini-value" style={{ color: c.color }}>{c.value}</span>
-                  <span className="md2-kpi-mini-label">{c.name}</span>
+              {complaintsPie.map((c, i) => (
+                <div key={c.name} className="md2-kpi-mini" style={{ borderLeft: `3px solid ${c.color || defaultComplaintsPie[i]?.color || '#0b4d8c'}` }}>
+                  <span className="md2-kpi-mini-value" style={{ color: c.color || defaultComplaintsPie[i]?.color }}>{c.value}</span>
+                  <span className="md2-kpi-mini-label" style={{ fontWeight: 'bold' }}>{c.name}</span>
                 </div>
               ))}
             </div>
@@ -477,30 +614,30 @@ export default function MainDashboard() {
 
       case 'paint-work':
         return (
-          <motion.div key="paint-work" {...contentVariants} className="md2-viz-content">
+          <motion.div key="paint-work" {...contentVariants} className="md2-viz-content md2-viz-container">
             <div className="md2-chart-grid">
               <div className="md2-chart-panel md2-chart-panel--full">
-                <p className="md2-chart-label">Target vs Achieved (Cumulative M²)</p>
+                <p className="md2-chart-label" style={{ fontWeight: 'bold', color: '#f8fafc' }}>Target vs Achieved (Cumulative M²)</p>
                 <ResponsiveContainer width="100%" height={320}>
                   <BarChart data={paintProgress} barGap={6}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.07)" />
-                    <XAxis dataKey="name" tick={{ fill: '#94a3b8', fontSize: 11 }} />
-                    <YAxis tick={{ fill: '#94a3b8', fontSize: 12 }} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+                    <XAxis dataKey="name" tick={{ fill: '#ffffff', fontSize: 11, fontWeight: 'bold' }} stroke="rgba(255,255,255,0.2)" />
+                    <YAxis tick={{ fill: '#ffffff', fontSize: 12, fontWeight: 'bold' }} stroke="rgba(255,255,255,0.2)" />
                     <Tooltip {...TOOLTIP_STYLE} cursor={false} formatter={(v) => `${v.toLocaleString()} M²`} />
-                    <Legend wrapperStyle={{ color: '#94a3b8', fontSize: 12 }} />
-                    <Bar dataKey="target" name="Target (M²)" fill="rgba(255,255,255,0.12)" radius={[4,4,0,0]} />
-                    <Bar dataKey="done" name="Achieved (M²)" fill="#e63946" radius={[4,4,0,0]} />
+                    <Legend wrapperStyle={{ color: '#f8fafc', fontSize: 12, fontWeight: 'bold' }} />
+                    <Bar dataKey="target" name="Target (M²)" fill="#0b4d8c" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="done" name="Achieved (M²)" fill="#2a9d8f" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
             </div>
             <div className="md2-kpi-strip">
               {paintProgress.map(p => (
-                <div key={p.name} className="md2-kpi-mini">
-                  <span className="md2-kpi-mini-value" style={{ color: p.done >= p.target ? '#2a9d8f' : '#f4a261' }}>
-                    {Math.round((p.done / p.target) * 100)}%
+                <div key={p.name} className="md2-kpi-mini" style={{ borderTop: `3px solid ${p.done >= p.target ? '#2a9d8f' : '#c0293a'}` }}>
+                  <span className="md2-kpi-mini-value" style={{ color: p.done >= p.target ? '#2a9d8f' : '#c0293a' }}>
+                    {p.target > 0 ? Math.round((p.done / p.target) * 100) : 0}%
                   </span>
-                  <span className="md2-kpi-mini-label">{p.name.replace('\n', ' ')}</span>
+                  <span className="md2-kpi-mini-label" style={{ fontWeight: 'bold' }}>{p.name.replace('\n', ' ')}</span>
                 </div>
               ))}
             </div>
@@ -509,37 +646,39 @@ export default function MainDashboard() {
 
       case 'maint-manpower':
         return (
-          <motion.div key="maint-manpower" {...contentVariants} className="md2-viz-content">
+          <motion.div key="maint-manpower" {...contentVariants} className="md2-viz-content md2-viz-container">
             <div className="md2-chart-grid">
               <div className="md2-chart-panel md2-chart-panel--full">
-                <p className="md2-chart-label">Actual vs Present</p>
+                <p className="md2-chart-label" style={{ fontWeight: 'bold', color: '#f8fafc' }}>Actual vs Present</p>
                 <ResponsiveContainer width="100%" height={320}>
                   <BarChart data={manpowerMaint} layout="vertical" barGap={4}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.07)" />
-                    <XAxis type="number" tick={{ fill: '#94a3b8', fontSize: 12 }} />
-                    <YAxis dataKey="name" type="category" width={120} tick={{ fill: '#94a3b8', fontSize: 11 }} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+                    <XAxis type="number" tick={{ fill: '#ffffff', fontSize: 12, fontWeight: 'bold' }} stroke="rgba(255,255,255,0.2)" />
+                    <YAxis dataKey="name" type="category" width={120} tick={{ fill: '#ffffff', fontSize: 11, fontWeight: 'bold' }} stroke="rgba(255,255,255,0.2)" />
                     <Tooltip {...TOOLTIP_STYLE} cursor={false} />
-                    <Legend wrapperStyle={{ color: '#94a3b8', fontSize: 12 }} />
-                    <Bar dataKey="actual" name="Actual" fill="#e9c46a" radius={[0,4,4,0]} />
-                    <Bar dataKey="present" name="Present" fill="#2a9d8f" radius={[0,4,4,0]} />
+                    <Legend wrapperStyle={{ color: '#f8fafc', fontSize: 12, fontWeight: 'bold' }} />
+                    <Bar dataKey="actual" name="Actual" fill="#0b4d8c" radius={[0, 4, 4, 0]} />
+                    <Bar dataKey="present" name="Present" fill="#2a9d8f" radius={[0, 4, 4, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
             </div>
             <div className="md2-kpi-strip">
-              <div className="md2-kpi-mini">
-                <span className="md2-kpi-mini-value" style={{ color: '#e9c46a' }}>{manpowerMaint.reduce((s, m) => s + m.actual, 0)}</span>
-                <span className="md2-kpi-mini-label">Total Actual</span>
+              <div className="md2-kpi-mini" style={{ borderLeft: '4px solid #0b4d8c' }}>
+                <span className="md2-kpi-mini-value" style={{ color: '#0b4d8c' }}>{manpowerMaint.reduce((s, m) => s + m.actual, 0)}</span>
+                <span className="md2-kpi-mini-label" style={{ fontWeight: 'bold' }}>Total Actual</span>
               </div>
-              <div className="md2-kpi-mini">
+              <div className="md2-kpi-mini" style={{ borderLeft: '4px solid #2a9d8f' }}>
                 <span className="md2-kpi-mini-value" style={{ color: '#2a9d8f' }}>{manpowerMaint.reduce((s, m) => s + m.present, 0)}</span>
-                <span className="md2-kpi-mini-label">Total Present</span>
+                <span className="md2-kpi-mini-label" style={{ fontWeight: 'bold' }}>Total Present</span>
               </div>
-              <div className="md2-kpi-mini">
-                <span className="md2-kpi-mini-value" style={{ color: '#e63946' }}>
-                  {Math.round((manpowerMaint.reduce((s, m) => s + m.present, 0) / manpowerMaint.reduce((s, m) => s + m.actual, 0)) * 100)}%
+              <div className="md2-kpi-mini" style={{ borderLeft: '4px solid #c0293a' }}>
+                <span className="md2-kpi-mini-value" style={{ color: '#c0293a' }}>
+                  {manpowerMaint.reduce((s, m) => s + m.actual, 0) > 0
+                    ? Math.round((manpowerMaint.reduce((s, m) => s + m.present, 0) / manpowerMaint.reduce((s, m) => s + m.actual, 0)) * 100)
+                    : 0}%
                 </span>
-                <span className="md2-kpi-mini-label">Attendance Rate</span>
+                <span className="md2-kpi-mini-label" style={{ fontWeight: 'bold' }}>Attendance Rate</span>
               </div>
             </div>
           </motion.div>
@@ -558,24 +697,29 @@ export default function MainDashboard() {
         ref={fileInputRef}
         style={{ display: 'none' }}
         accept=".xlsx,.xls,.csv"
-        onChange={handleImport}
+        onChange={handleFileSelect}
       />
 
       {/* ── Top Navigation Bar ── */}
       <nav className="md2-topbar">
         <div className="md2-topbar-inner">
           <div className="md2-topbar-left">
-            {/* Hamburger Menu */}
-            <button className="md2-hamburger" onClick={() => setSectionsPanelOpen(!sectionsPanelOpen)} title="Open sections">
-              <span className={`md2-hamburger-line ${sectionsPanelOpen ? 'md2-hamburger-line--open' : ''}`} />
-              <span className={`md2-hamburger-line ${sectionsPanelOpen ? 'md2-hamburger-line--open' : ''}`} />
-              <span className={`md2-hamburger-line ${sectionsPanelOpen ? 'md2-hamburger-line--open' : ''}`} />
-            </button>
             <div className="nav-logo" onClick={() => navigate('/dashboard')} style={{ cursor: 'pointer' }}>
               <img src="/images/jsw_logo_clean.png" alt="JSW" className="nav-logo-img" />
             </div>
             <div className="md2-topbar-divider" />
-            <h1 className="md2-topbar-title">Township Daily Report</h1>
+            <h1 className="md2-topbar-title">Dashboard</h1>
+          </div>
+
+          {/* Centered HOME Button */}
+          <div className="md2-topbar-center" style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', display: 'flex', alignItems: 'center' }}>
+            <button
+              className="nav-link active md2-nav-home-btn"
+              onClick={() => navigate('/dashboard')}
+              style={{ background: 'rgba(255, 255, 255, 0.08)', color: '#ffffff', fontWeight: 600, border: 'none', cursor: 'pointer', padding: '8px 18px', borderRadius: '8px' }}
+            >
+              HOME
+            </button>
           </div>
 
           <div className="md2-topbar-right">
@@ -593,21 +737,48 @@ export default function MainDashboard() {
               />
             </div>
 
-            {/* Import Button */}
-            <button className="md2-action-btn md2-action-btn--import" onClick={() => fileInputRef.current?.click()} title="Import Excel Sheet">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                <polyline points="17 8 12 3 7 8" />
-                <line x1="12" y1="3" x2="12" y2="15" />
-              </svg>
-              <span>Import</span>
-            </button>
+            {/* Profile / Dropdown Toggle */}
+            <div className="nav-profile" ref={profileMenuRef}>
+              <button className="profile-btn" onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}>
+                <div className="profile-avatar">{user?.name?.charAt(0) || 'U'}</div>
+                <div className="profile-info-compact" style={{ textAlign: 'left' }}>
+                  <span className="profile-name" style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600 }}>{user?.name || 'User'}</span>
+                  <span className="profile-role-badge" style={{ display: 'block', fontSize: '0.65rem', color: '#2a9d8f', fontWeight: 'bold' }}>{user?.role || 'Staff'}</span>
+                </div>
+                <svg className={`dropdown-caret ${profileDropdownOpen ? 'open' : ''}`} width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ marginLeft: '4px', transition: 'transform 0.2s' }}>
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </button>
 
-            {/* Profile / Logout */}
-            <button className="profile-btn" onClick={() => { logout(); navigate('/login', { replace: true }); }}>
-              <div className="profile-avatar">{user?.name?.charAt(0) || 'A'}</div>
-              <span className="profile-name">Logout</span>
-            </button>
+              <AnimatePresence>
+                {profileDropdownOpen && (
+                  <motion.div
+                    className="profile-dropdown"
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 8 }}
+                    transition={{ duration: 0.15 }}
+                  >
+                    <div className="dropdown-header">
+                      <div className="dropdown-avatar">{user?.name?.charAt(0) || 'U'}</div>
+                      <div style={{ textAlign: 'left' }}>
+                        <div className="dropdown-name">{user?.name || 'User'}</div>
+                        <div className="dropdown-role">{user?.role || 'Staff'}</div>
+                      </div>
+                    </div>
+                    <div className="dropdown-divider" />
+                    <button className="dropdown-item logout-item" onClick={() => { logout(); navigate('/login', { replace: true }); }}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px' }}>
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1-2-2h4" />
+                        <polyline points="16 17 21 12 16 7" />
+                        <line x1="21" y1="12" x2="9" y2="12" />
+                      </svg>
+                      <span>Logout</span>
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           </div>
         </div>
       </nav>
@@ -688,7 +859,30 @@ export default function MainDashboard() {
             <div className="md2-content-header-left">
               <span className="md2-content-icon">{currentSection?.icon}</span>
               <div>
-                <h2 className="md2-content-title">Township Daily Report</h2>
+                <AnimatePresence mode="wait">
+                  {importedData ? (
+                    <motion.h2
+                      key="jsw-title"
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      className="md2-content-title"
+                      style={{ color: '#0b4d8c', fontWeight: 800 }}
+                    >
+                      JSW DAILY REPORT
+                    </motion.h2>
+                  ) : (
+                    <motion.h2
+                      key="generic-title"
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      className="md2-content-title"
+                    >
+                      Township Daily Report
+                    </motion.h2>
+                  )}
+                </AnimatePresence>
                 <p className="md2-content-subtitle">
                   Data source: Township DPR Sheets
                   {importFileName && <span className="md2-import-badge"> · Imported: {importFileName}</span>}
@@ -697,10 +891,12 @@ export default function MainDashboard() {
             </div>
             <div className="md2-content-header-right">
               <span className="md2-date-badge">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '4px' }}>
                   <rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
                 </svg>
-                {new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                {selectedDate
+                  ? new Date(selectedDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })
+                  : new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
               </span>
             </div>
           </div>
@@ -734,12 +930,106 @@ export default function MainDashboard() {
               <div className="md2-split-right-header">
                 <span className="md2-split-right-icon">{currentSection?.icon}</span>
                 <span className="md2-split-right-title">{currentSection?.label}</span>
+
+                {/* ── Calendar Picker Dropdown ── */}
+                <div className="md2-date-picker-container" ref={dateDropdownRef}>
+                  <button
+                    type="button"
+                    className={`md2-date-picker-trigger ${dateDropdownOpen ? 'active' : ''}`}
+                    onClick={() => setDateDropdownOpen(!dateDropdownOpen)}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                      <line x1="16" y1="2" x2="16" y2="6" />
+                      <line x1="8" y1="2" x2="8" y2="6" />
+                      <line x1="3" y1="10" x2="21" y2="10" />
+                    </svg>
+                    <span>{selectedDate ? selectedDate : 'Select Date'}</span>
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ marginLeft: '2px', transform: dateDropdownOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>
+                      <polyline points="6 9 12 15 18 9" />
+                    </svg>
+                  </button>
+
+                  <AnimatePresence>
+                    {dateDropdownOpen && (
+                      <motion.div
+                        className="md2-date-picker-menu"
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 8 }}
+                        transition={{ duration: 0.15 }}
+                      >
+                        <div className="md2-date-picker-header">Historical Reports</div>
+                        {availableDates.length === 0 ? (
+                          <div style={{ padding: '8px 12px', fontSize: '0.75rem', color: 'var(--gray)' }}>No reports found</div>
+                        ) : (
+                          availableDates.map((d) => (
+                            <button
+                              key={d}
+                              type="button"
+                              className={`md2-date-picker-item ${selectedDate === d ? 'selected' : ''}`}
+                              onClick={async () => {
+                                setDateDropdownOpen(false);
+                                await fetchReportForDate(d);
+                              }}
+                            >
+                              <span>{d}</span>
+                              {selectedDate === d && (
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#2a9d8f' }}>
+                                  <polyline points="20 6 9 17 4 12" />
+                                </svg>
+                              )}
+                            </button>
+                          ))
+                        )}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
               </div>
               <div className="md2-split-right-body">
                 <AnimatePresence mode="wait">
                   {renderVisualization()}
                 </AnimatePresence>
               </div>
+
+              {/* Holographic Loader Overlay */}
+              <AnimatePresence>
+                {isAnalyzing && (
+                  <motion.div
+                    className="md2-analysis-overlay"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <div className="md2-hologram-container">
+                      <div className="md2-holo-spinner" />
+                      <div className="md2-holo-radar" />
+                      <div className="md2-holo-scanner">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="md2-holo-icon">
+                          <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+                          <polyline points="14 2 14 8 20 8" />
+                          <path d="M8 13h8" />
+                          <path d="M8 17h8" />
+                          <path d="M8 9h2" />
+                        </svg>
+                        <div className="md2-scanner-sweep" />
+                      </div>
+                    </div>
+                    <h3 className="md2-analysis-title">Analyzing Spreadsheet</h3>
+                    <p className="md2-analysis-subtitle">
+                      JSW Group AI Data Engine is running optimized parsing algorithms on your Daily Progress Report.
+                    </p>
+                    <div className="md2-analysis-terminal">
+                      <span className="md2-terminal-prompt">SYS_KERN:&gt;</span>
+                      <span className="md2-terminal-text" key={analyzingStep}>
+                        {analyzingStep}
+                      </span>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </div>
 
@@ -753,19 +1043,77 @@ export default function MainDashboard() {
                 {user?.name && `· ${user.name}`} · JSW Group · Township Management Portal
               </span>
             </div>
-            {/* Export Button */}
-            <button className="md2-action-btn md2-action-btn--export" onClick={handleExport} title="Export to Excel">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                <polyline points="7 10 12 15 17 10" />
-                <line x1="12" y1="15" x2="12" y2="3" />
-              </svg>
-              <span>Export Data</span>
-            </button>
+            {/* Export button */}
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button className="md2-action-btn md2-action-btn--export" onClick={handleExport} title="Export to Excel">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }}>
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="7 10 12 15 17 10" />
+                  <line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+                <span>Export Data</span>
+              </button>
+            </div>
           </div>
 
         </main>
       </div>
+
+      {/* ── Date Ingestion Confirmation Modal ── */}
+      <AnimatePresence>
+        {showDateModal && (
+          <motion.div
+            className="md2-date-modal-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <motion.div
+              className="md2-date-modal"
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 350 }}
+            >
+              <div className="md2-date-modal-icon">📅</div>
+              <h3 className="md2-date-modal-title">Confirm Report Date</h3>
+              <p className="md2-date-modal-desc">
+                Specify the operation date for the Township Daily Progress Report. This ensures data records are tracked accurately in historical audits.
+              </p>
+              <div className="md2-date-input-group">
+                <label className="md2-date-input-label">Report Date</label>
+                <input
+                  type="date"
+                  className="md2-date-input"
+                  value={inputDate}
+                  onChange={(e) => setInputDate(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="md2-date-modal-actions">
+                <button
+                  type="button"
+                  className="md2-date-modal-btn md2-date-modal-btn--cancel"
+                  onClick={() => {
+                    setShowDateModal(false);
+                    setPendingFile(null);
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="md2-date-modal-btn md2-date-modal-btn--confirm"
+                  onClick={handleImportConfirm}
+                  disabled={!inputDate}
+                >
+                  Confirm & Ingest
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

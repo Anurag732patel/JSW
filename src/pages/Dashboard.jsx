@@ -410,17 +410,6 @@ export default function Dashboard() {
                       </div>
                     ))}
                   </div>
-                  <motion.button
-                    className="module-btn"
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.97 }}
-                    transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-                  >
-                    Open Module
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                      <polyline points="9 6 15 12 9 18" />
-                    </svg>
-                  </motion.button>
                 </div>
               </motion.div>
             ))}
