@@ -1,4 +1,5 @@
 const express = require('express');
+const mongoose = require('mongoose');
 const User = require('../models/User');
 
 const router = express.Router();
@@ -6,6 +7,14 @@ const router = express.Router();
 // Login Route
 router.post('/login', async (req, res) => {
   try {
+    // Check if database is connected before attempting query
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({ 
+        success: false, 
+        message: 'Database is not connected. Please ensure MongoDB Atlas IP whitelist includes your IP address.' 
+      });
+    }
+
     const { username, password } = req.body;
 
     // Find the user by username
@@ -26,6 +35,7 @@ router.post('/login', async (req, res) => {
       res.status(401).json({ success: false, message: 'Invalid username or password' });
     }
   } catch (error) {
+    console.error('Login error:', error.message);
     res.status(500).json({ success: false, message: 'Server error during login', error: error.message });
   }
 });
