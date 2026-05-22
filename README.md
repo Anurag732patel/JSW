@@ -1,126 +1,106 @@
-# JSW Township DPR Dashboard 🚀
+# JSW Township DPR Dashboard
 
-A premium, state-of-the-art Web Application designed for **JSW Township** to parse, store, and visualize the **Daily Progress Reports (DPR)**. Built as a single-host application featuring a highly responsive React client and a robust Node/Express server backed by MongoDB Atlas.
+Welcome! This is the repository for the JSW Township Daily Progress Report (DPR) Dashboard. It's a full-stack tool built to help the JSW team parse Excel spreadsheets and instantly visualize township metrics like guest house occupancy, canteen meals, fleet movement, and maintenance tasks.
 
----
-
-## 🎨 Design & Aesthetic System
-
-The application is styled with a custom **Material Design 2 (MD2)** dark aesthetic.
-- **Color Palette**: Sophisticated HSL colors featuring JSW Steel Blue backdrop overlays, premium dark surfaces, dynamic muted grey typography, and vibrant red accents (`var(--accent)`).
-- **Smooth Animations**: Interactive charts and overlays powered by `framer-motion` and micro-animations for cards and hover selectors.
-- **Glassmorphism**: Translucent headers, loaders, and indicators utilizing native `backdrop-filter: blur()`.
+The frontend is built with **React** and **Vite**, and the backend is built with **Node.js, Express, and MongoDB**. They both run together smoothly on a single host.
 
 ---
 
-## ⚡ Key Features
+## 🛠️ The Tech Stack & Style
 
-1. **Interactive Excel DPR Data Ingestion**
-   - Drag-and-drop or select standard Daily Progress Report spreadsheets (`.xlsx`, `.xls`, `.csv`).
-   - Automated server-side Excel parser that extracts multiple worksheets (Guest House, Meals, Manpower, Vehicles, Maintenance, Painting).
-2. **Dynamic Data Visualizations**
-   - High-fidelity interactive Recharts displaying room availability, canteen meal distributions, vehicle distances, paint targets, and work progress.
-   - Smooth horizontal/vertical layouts and radial pie indicators with hover tooltips.
-3. **Historical Navigation**
-   - Retroactive search and navigation calendar to quickly view or filter reports submitted on past dates.
-4. **Secure Authentication**
-   - Role-based profile badges (Administrator, Manager, User) and JWT-signed authorization gates.
-5. **Zero-Config 100% Free Production Deployment**
-   - Built-in Render Blueprint (`render.yaml`) and database auto-seeding on startup for seamless public hosting.
+- **Frontend**: React (Vite) + Recharts for clean, interactive charts.
+- **Backend**: Node.js + Express.js.
+- **Database**: MongoDB (configured for MongoDB Atlas in production).
+- **Styling**: Custom Material Design-inspired dark theme with responsive CSS.
+- **Deployments**: Configured to run on **Render** (completely free tier friendly).
 
 ---
 
-## 📁 Repository Structure
+## 🚀 Key Features
+
+- **Upload Excel Spreadsheets**: Drop in a township DPR workbook (`.xlsx`, `.csv`), and the backend automatically parses and updates all indicators.
+- **Interactive Visualizations**: View dynamic charts showing canteen meals, guest house occupancy rates, maintenance requests, and vehicle mileage.
+- **Historical Reports**: Select any past date from the calendar dropdown to fetch and inspect historical data.
+- **Automatic Database Seeding**: On the very first startup, the server automatically checks if the database is empty and creates the default admin user.
+
+---
+
+## 📁 Project Directory Layout
+
+Here is how the codebase is organized:
 
 ```text
 JSW/
-├── backend/                  # Node.js + Express Backend API Server
-│   ├── models/               # MongoDB Mongoose Schemas (User, DprReport)
-│   ├── routes/               # API Routes (Authentication, DPR Processing)
-│   ├── utils/                # Spreadsheet Parsing Logic
-│   ├── server.js             # Express Entry Point (serves static dist/ client)
-│   └── package.json          # Backend Node Dependencies
-├── src/                      # Vite + React Frontend Application
-│   ├── components/           # Protected routes and reusable UI panels
-│   ├── context/              # Context Providers (Authentication State)
-│   ├── pages/                # Main Visualizer Panels & Login screens
-│   ├── index.css             # Unified modern CSS theme variables & styles
-│   └── main.jsx              # Client entry point
-├── public/                   # Static browser assets (Logos, Icons)
-├── render.yaml               # Render Infrastructure-as-Code Blueprint
-├── vite.config.js            # Vite configuration & dev proxy
-└── package.json              # Root project configurations and scripts
+├── backend/                  # Express server & database logic
+│   ├── models/               # Mongoose schemas (User & DprReport)
+│   ├── routes/               # API endpoints (Auth & DPR reports)
+│   ├── utils/                # The excel parsing script
+│   └── server.js             # Backend entry point (serves both API & built frontend)
+├── src/                      # React frontend
+│   ├── components/           # Protected routes & UI layout panels
+│   ├── context/              # Authentication state provider
+│   ├── pages/                # Pages (Dashboard, Main Dashboard, Login)
+│   └── index.css             # Main stylesheet & theme colors
+├── render.yaml               # 1-Click Render blueprint configuration
+├── vite.config.js            # Frontend build configs & API proxy settings
+└── package.json              # Project scripts & global settings
 ```
 
 ---
 
-## 🛠️ Local Development Quick Start
+## 💻 Running the Project Locally
 
-### 1. Prerequisites
-- **Node.js** (v20+ recommended)
-- **MongoDB** (Local instance or Cloud Atlas cluster)
-
-### 2. Configure Environment Variables
-Create a `.env` file inside the `backend/` directory:
+### 1. Set Up the Backend Environment
+Go into the `backend` folder and create a `.env` file:
 ```env
 PORT=5000
 MONGODB_URI=mongodb://127.0.0.1:27017/jsw_db
-JWT_SECRET=your_super_secret_signing_key_here
+JWT_SECRET=choose_any_long_random_string_here
 ```
 
-### 3. Install & Start
+### 2. Install & Start Everything
 
-#### Run the Backend Server
+#### Start the Server:
 ```bash
 cd backend
 npm install
 npm start
 ```
 
-#### Run the Frontend Client (Vite Dev Server)
-In a new terminal window in the root directory:
+#### Start the Client (Vite Dev Server):
+In a separate terminal in the root directory:
 ```bash
 npm install
 npm run dev
 ```
-Open **[http://localhost:5173](http://localhost:5173)** in your browser. The Vite server automatically proxies `/api` requests to the Express backend running on port `5000`.
+Open **[http://localhost:5173](http://localhost:5173)** in your browser. Any requests to `/api` will automatically proxy to the backend running on port `5000`.
 
 ---
 
-## 🚀 Deploying to Render (Free Tier Friendly)
+## 🌐 Deploying to Render (Free Tier)
 
-This project is configured with a unified **Render Blueprint** (`render.yaml`) which mounts both front-end and back-end on a single port for **100% free hosting**.
+This app is configured to run on Render's free tier with a single click. Both the frontend and backend run on the same service to keep costs at zero.
 
-### 1. Configure MongoDB Atlas Network Access
-> [!IMPORTANT]
-> Because Render free instances utilize dynamic IP addresses, you must whitelist connections from all entry points in your MongoDB Atlas cluster.
-- Go to MongoDB Atlas Console -> **Security** -> **Network Access**.
-- Click **Add IP Address** -> Select **Allow Access from Anywhere** (`0.0.0.0/0`) -> Click **Confirm**.
+### 1. Update MongoDB Atlas Network Access
+Render's free tier uses dynamic IP addresses, so you need to whitelist all IPs in MongoDB Atlas:
+- Go to your MongoDB Atlas dashboard -> **Network Access**.
+- Click **Add IP Address** -> click **Allow Access from Anywhere** (`0.0.0.0/0`) -> **Confirm**.
 
-### 2. Deploy the Blueprint
-1. Push this repository to your GitHub account.
-2. Log into the **[Render Dashboard](https://dashboard.render.com/)**.
-3. Click **New** -> **Blueprint**.
-4. Connect your JSW repository.
-5. Provide your **`MONGODB_URI`** connection string when prompted in the environment settings form.
-6. Click **Approve / Deploy**.
+### 2. Launch on Render
+1. Log into your **[Render Dashboard](https://dashboard.render.com/)**.
+2. Click **New** -> **Blueprint**.
+3. Select your **`JSW`** repository.
+4. Paste your **`MONGODB_URI`** connection string when prompted in the environment variables form.
+5. Click **Approve / Deploy**.
 
-### 3. Automatic Seeding
-- Unlike normal deployments that require paid interactive shell access, **the server will automatically detect an empty database and seed the default administrator credentials on the very first boot!**
+*Render will automatically use Node 22, install all dependencies, build the React app, and launch the server. It will also auto-seed the default admin credentials on the first run!*
 
 ---
 
-## 🔑 Default Administrator Credentials
+## 🔑 Default Administrator Login
 
-Once deployed or running locally, log in using:
+Once the application is up and running, you can log in using these default credentials:
 - **Username**: `admin`
 - **Password**: `jsw@2024`
 
----
-
-## 📦 Production Build Verification
-To manually compile and package the React frontend into the production `dist/` bundle:
-```bash
-npm run build
-```
-The Node backend is hardwired to serve these static files natively, making production hosting lightweight and highly performant.
+*(If you ever need to reset the database or seed it again, you can run `npm run seed` in your local `backend` folder.)*
