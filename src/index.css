@@ -2684,4 +2684,505 @@ body {
   box-shadow: 0 4px 20px rgba(42, 157, 143, 0.35);
 }
 
+
+/* ==========================================================================
+   ===== CASHMERE & SOFT LAVENDER PREMIUM LIGHT THEME =====
+   ========================================================================== */
+
+.md2-page {
+  /* Cashmere & Soft Lavender Local CSS Variables Override */
+  --primary: #7C3AED;        /* Lavender */
+  --primary-light: #8B5CF6;  /* Soft Lavender */
+  --accent: #D946EF;         /* Mauve / Purple Accent */
+  --accent-glow: rgba(217, 70, 239, 0.2);
+  --dark: #F5EFE6;           /* Cashmere Cream background */
+  --dark-card: #FFFFFF;      /* Pure White Card */
+  --dark-surface: #FFFFFF;   /* Pure White Card Surface */
+  --light: #1C1917;          /* Soft Obsidian Black text */
+  --gray: #71717A;           /* Zinc/slate grey for descriptions */
+  --white: #1C1917;          /* Primary text color (soft black) */
+  --glass-bg: rgba(255, 255, 255, 0.95);
+  --glass-border: #E8DFD2;   /* Soft beige border */
+  --shadow: 0 4px 20px rgba(45, 38, 33, 0.04);
+
+  min-height: 100vh;
+  background-color: var(--dark) !important;
+  color: var(--white) !important;
+  font-family: 'Inter', -apple-system, sans-serif;
+}
+
+/* ── Overrides for Light Mode Cards & Panels ── */
+.md2-page .md2-topbar {
+  background: rgba(245, 239, 230, 0.8) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border-bottom: 1px solid var(--glass-border) !important;
+  color: var(--white) !important;
+}
+
+.md2-page .md2-topbar-title {
+  color: var(--white) !important;
+}
+
+.md2-page .md2-search-box {
+  background: #FFFFFF !important;
+  border: 1px solid var(--glass-border) !important;
+  color: var(--white) !important;
+}
+
+.md2-page .md2-search-input {
+  color: var(--white) !important;
+}
+
+.md2-page .md2-search-input::placeholder {
+  color: var(--gray) !important;
+}
+
+.md2-page .profile-btn {
+  background: #FFFFFF !important;
+  border: 1px solid var(--glass-border) !important;
+  color: var(--white) !important;
+}
+
+.md2-page .profile-avatar {
+  background: linear-gradient(135deg, var(--primary), var(--accent)) !important;
+  color: #FFFFFF !important;
+}
+
+.md2-page .profile-name {
+  color: var(--white) !important;
+}
+
+.md2-page .profile-dropdown {
+  background: #FFFFFF !important;
+  border: 1px solid var(--glass-border) !important;
+  box-shadow: 0 10px 25px rgba(45, 38, 33, 0.08) !important;
+  color: var(--white) !important;
+}
+
+.md2-page .dropdown-header {
+  color: var(--white) !important;
+}
+
+.md2-page .dropdown-avatar {
+  background: linear-gradient(135deg, var(--primary), var(--accent)) !important;
+  color: #FFFFFF !important;
+}
+
+.md2-page .dropdown-role {
+  color: var(--gray) !important;
+}
+
+.md2-page .dropdown-item {
+  color: var(--gray) !important;
+}
+
+.md2-page .dropdown-item:hover {
+  background: #FAF6F0 !important;
+  color: var(--white) !important;
+}
+
+.md2-page .dropdown-divider {
+  background-color: var(--glass-border) !important;
+}
+
+/* ── Split Panel layout ── */
+.md2-page .md2-split {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  overflow: hidden !important; /* Keep height bounded for inner scrolling to work */
+  gap: 10px !important; /* Subtle spacing between the panel containers */
+}
+
+.md2-page .md2-split-left {
+  background: #FFFFFF !important;
+  border: 1px solid var(--glass-border) !important;
+  box-shadow: var(--shadow) !important;
+  border-radius: 16px !important;
+  overflow: hidden !important;
+}
+
+.md2-page .md2-split-left-header {
+  border-bottom: 1px solid var(--glass-border) !important;
+  background: #FAF6F0 !important;
+}
+
+.md2-page .md2-split-left-label {
+  color: var(--gray) !important;
+}
+
+.md2-page .md2-split-item {
+  color: var(--gray) !important;
+}
+
+.md2-page .md2-split-item:hover {
+  background: #FAF6F0 !important;
+  color: var(--white) !important;
+}
+
+.md2-page .md2-split-item--active {
+  background: rgba(124, 58, 237, 0.08) !important; /* light lavender active */
+  color: var(--primary) !important;
+  font-weight: 700 !important;
+}
+
+.md2-page .md2-split-item-icon {
+  filter: grayscale(1) opacity(0.8);
+}
+
+.md2-page .md2-split-item--active .md2-split-item-icon {
+  filter: none opacity(1);
+}
+
+.md2-page .md2-split-item-bar {
+  background: var(--primary) !important;
+}
+
+/* Right viz area */
+.md2-page .md2-split-right {
+  background: #FFFFFF !important;
+  border: 1px solid var(--glass-border) !important;
+  box-shadow: var(--shadow) !important;
+  border-radius: 16px !important;
+  overflow: hidden !important;
+}
+
+.md2-page .md2-split-right-header {
+  border: none !important;
+  border-bottom: 1px solid var(--glass-border) !important;
+  background: #FAF6F0 !important; /* Cream background matching left panel header */
+  border-radius: 0 !important;
+}
+
+.md2-page .md2-split-right-title {
+  color: var(--white) !important;
+}
+
+.md2-page .md2-split-right-body {
+  background: #FFFFFF !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+.md2-page .md2-chart-panel {
+  background: #FFFFFF !important;
+  border: 1px solid var(--glass-border) !important;
+  box-shadow: var(--shadow) !important;
+}
+
+.md2-page .md2-chart-panel:hover {
+  border-color: var(--primary-light) !important;
+  box-shadow: 0 8px 30px rgba(124, 58, 237, 0.06) !important;
+}
+
+.md2-page .md2-chart-label {
+  color: var(--white) !important;
+}
+
+.md2-page .md2-kpi-mini {
+  background: #FFFFFF !important;
+  border: 1px solid var(--glass-border) !important;
+  box-shadow: var(--shadow) !important;
+}
+
+.md2-page .md2-kpi-mini-value {
+  color: var(--white) !important;
+}
+
+.md2-page .md2-kpi-mini-label {
+  color: var(--gray) !important;
+}
+
+/* ── Content header & subtitle ── */
+.md2-page .md2-content-title {
+  color: var(--white) !important;
+}
+
+.md2-page .md2-content-subtitle {
+  color: var(--gray) !important;
+}
+
+.md2-page .md2-date-badge {
+  background: #FFFFFF !important;
+  border: 1px solid var(--glass-border) !important;
+  color: var(--white) !important;
+  box-shadow: var(--shadow) !important;
+}
+
+/* ── Date dropdown trigger ── */
+.md2-page .md2-date-picker-trigger {
+  background: #FFFFFF !important;
+  border: 1px solid var(--glass-border) !important;
+  color: var(--white) !important;
+}
+
+.md2-page .md2-date-picker-trigger:hover {
+  background: #FAF6F0 !important;
+  border-color: var(--glass-border) !important;
+}
+
+.md2-page .md2-date-picker-trigger.active {
+  background: rgba(124, 58, 237, 0.08) !important;
+  border-color: var(--primary) !important;
+}
+
+.md2-page .md2-date-picker-menu {
+  background: #FFFFFF !important;
+  border: 1px solid var(--glass-border) !important;
+  box-shadow: 0 12px 30px rgba(45, 38, 33, 0.08) !important;
+}
+
+.md2-page .md2-date-picker-header {
+  color: var(--gray) !important;
+  border-bottom: 1px solid var(--glass-border) !important;
+}
+
+.md2-page .md2-date-picker-item {
+  color: var(--gray) !important;
+}
+
+.md2-page .md2-date-picker-item:hover {
+  background: #FAF6F0 !important;
+  color: var(--white) !important;
+}
+
+.md2-page .md2-date-picker-item.selected {
+  background: rgba(124, 58, 237, 0.08) !important;
+  color: var(--primary) !important;
+}
+
+/* ── Upload & Loader ── */
+.md2-page .md2-upload-card {
+  background: #FFFFFF !important;
+  border: 2px dashed var(--glass-border) !important;
+  box-shadow: var(--shadow) !important;
+}
+
+.md2-page .md2-upload-icon-wrapper {
+  background: rgba(124, 58, 237, 0.08) !important;
+  color: var(--primary) !important;
+}
+
+.md2-page .md2-upload-title {
+  color: var(--white) !important;
+}
+
+.md2-page .md2-upload-desc {
+  color: var(--gray) !important;
+}
+
+.md2-page .md2-upload-btn {
+  background: linear-gradient(135deg, var(--primary), var(--primary-light)) !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 4px 14px rgba(124, 58, 237, 0.3) !important;
+}
+
+.md2-page .md2-upload-btn:hover {
+  box-shadow: 0 6px 20px rgba(124, 58, 237, 0.45) !important;
+}
+
+.md2-page .md2-upload-formats {
+  color: var(--gray) !important;
+}
+
+.md2-page .md2-requirements-title {
+  color: var(--white) !important;
+  border-bottom: 1px solid var(--glass-border) !important;
+}
+
+.md2-page .md2-req-item {
+  background: #FAF6F0 !important;
+  border: 1px solid var(--glass-border) !important;
+  color: var(--white) !important;
+}
+
+/* Bottom Bar */
+.md2-page .md2-bottom-bar {
+  background: #FFFFFF !important;
+  border: 1px solid var(--glass-border) !important;
+  box-shadow: var(--shadow) !important;
+  border-radius: var(--radius);
+}
+
+.md2-page .md2-section-badge {
+  background: #FAF6F0 !important;
+  border: 1px solid var(--glass-border) !important;
+  color: var(--white) !important;
+}
+
+.md2-page .md2-data-info {
+  color: var(--gray) !important;
+}
+
+.md2-page .md2-action-btn--export {
+  background: #FFFFFF !important;
+  border: 1px solid var(--glass-border) !important;
+  color: var(--white) !important;
+}
+
+.md2-page .md2-action-btn--export:hover {
+  background: #FAF6F0 !important;
+}
+
+.md2-page .md2-action-btn--remove {
+  background: #FFEBEB !important;
+  border: 1px solid #FFCDCD !important;
+  color: #E63946 !important;
+}
+
+.md2-page .md2-action-btn--remove:hover {
+  background: #FFD6D6 !important;
+}
+
+/* Date Input Ingestion Confirmation Modal */
+.md2-page .md2-date-modal-overlay {
+  background: rgba(45, 38, 33, 0.5) !important;
+}
+
+.md2-page .md2-date-modal {
+  background: #FFFFFF !important;
+  border: 1px solid var(--glass-border) !important;
+  box-shadow: 0 24px 50px rgba(45, 38, 33, 0.15) !important;
+}
+
+.md2-page .md2-date-modal-title {
+  color: var(--white) !important;
+}
+
+.md2-page .md2-date-modal-desc {
+  color: var(--gray) !important;
+}
+
+.md2-page .md2-date-input-label {
+  color: var(--white) !important;
+}
+
+.md2-page .md2-date-input {
+  background: #FFFFFF !important;
+  border: 1px solid var(--glass-border) !important;
+  color: var(--white) !important;
+}
+
+.md2-page .md2-date-modal-btn--cancel {
+  background: #FAF6F0 !important;
+  border: 1px solid var(--glass-border) !important;
+  color: var(--gray) !important;
+}
+
+.md2-page .md2-date-modal-btn--cancel:hover {
+  background: #EFEBE4 !important;
+}
+
+.md2-page .md2-date-modal-btn--confirm {
+  background: var(--primary) !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 4px 14px rgba(124, 58, 237, 0.3) !important;
+}
+
+.md2-page .md2-date-modal-btn--confirm:hover {
+  background: var(--primary-light) !important;
+}
+
+/* Complaints view list button */
+.md2-page .md2-view-complaints-btn {
+  background: linear-gradient(135deg, var(--primary), var(--primary-light)) !important;
+  box-shadow: 0 4px 20px rgba(124, 58, 237, 0.3) !important;
+}
+
+.md2-page .md2-view-complaints-btn:hover {
+  box-shadow: 0 6px 24px rgba(124, 58, 237, 0.45) !important;
+  transform: translateY(-2px);
+}
+
+.md2-page .md2-back-charts-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px !important;
+  background: var(--primary) !important; /* Elegant lavender */
+  color: #FFFFFF !important;            /* Crisp white text */
+  border: 1px solid var(--primary-light) !important;
+  border-radius: 8px !important;
+  font-size: 0.8rem !important;
+  font-weight: 600 !important;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.15) !important;
+}
+
+.md2-page .md2-back-charts-btn:hover {
+  background: var(--primary-light) !important;
+  box-shadow: 0 6px 18px rgba(124, 58, 237, 0.3) !important;
+  transform: translateX(-4px) !important; /* Move left slightly to emphasize "back" action! */
+}
+
+.md2-page .md2-back-charts-btn:active {
+  transform: translateX(-4px) scale(0.96) !important;
+  box-shadow: 0 2px 8px rgba(124, 58, 237, 0.2) !important;
+}
+
+.md2-page .md2-back-charts-btn svg {
+  transition: transform 0.25s ease !important;
+}
+
+.md2-page .md2-back-charts-btn:hover svg {
+  transform: translateX(-2px) !important; /* Animate arrow separately */
+}
+
+.md2-page .md2-complaints-card {
+  background: #FFFFFF !important;
+}
+
+.md2-page table th {
+  background: #FAF6F0 !important;
+  color: var(--white) !important;
+  border-bottom: 1px solid var(--glass-border) !important;
+}
+
+.md2-page table td {
+  border-bottom: 1px solid var(--glass-border) !important;
+}
+
+/* Analysis Terminal Loader */
+.md2-page .md2-analysis-overlay {
+  background: rgba(245, 239, 230, 0.95) !important;
+}
+
+.md2-page .md2-analysis-title {
+  color: var(--white) !important;
+}
+
+.md2-page .md2-analysis-subtitle {
+  color: var(--gray) !important;
+}
+
+.md2-page .md2-analysis-terminal {
+  background: #FFFFFF !important;
+  border: 1px solid var(--glass-border) !important;
+  box-shadow: inset 0 2px 8px rgba(45, 38, 33, 0.04) !important;
+  color: var(--primary) !important;
+}
+
+.md2-page .md2-terminal-prompt {
+  color: var(--accent) !important;
+}
+
+/* ── Topbar centered Home button light theme overrides ── */
+.md2-page .md2-nav-home-btn {
+  background: var(--primary) !important; /* Premium Lavender background */
+  color: #FFFFFF !important;            /* Crisp white text for perfect readability */
+  border: 1px solid var(--primary-light) !important;
+  box-shadow: 0 4px 14px rgba(124, 58, 237, 0.25) !important;
+}
+
+.md2-page .md2-nav-home-btn:hover {
+  background: var(--primary-light) !important;
+  border-color: var(--primary) !important;
+  box-shadow: 0 6px 18px rgba(124, 58, 237, 0.4) !important;
+  transform: translateY(-1px) scale(1.03) !important;
+}
+
+
 
