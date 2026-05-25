@@ -678,7 +678,7 @@ export default function MainDashboard() {
                     <YAxis tick={{ fill: '#1C1917', fontSize: 12, fontWeight: 'bold' }} stroke="#E8DFD2" />
                     <Tooltip {...TOOLTIP_STYLE} cursor={false} />
                     <Legend wrapperStyle={{ color: '#1C1917', fontSize: 12, fontWeight: 'bold' }} />
-                    <Bar dataKey="total" name="Total Rooms" fill="#E8DFD2" stroke="#C2B8AA" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="total" name="Total Rooms" fill="#10B981" stroke="#059669" radius={[4, 4, 0, 0]} />
                     <Bar dataKey="occupied" name="Occupied" fill="#7C3AED" radius={[4, 4, 0, 0]} />
                     <Bar dataKey="vacant" name="Vacant" fill="#D946EF" radius={[4, 4, 0, 0]} />
                   </BarChart>
@@ -695,7 +695,7 @@ export default function MainDashboard() {
                       cx="50%" cy="50%" innerRadius={70} outerRadius={95}
                       dataKey="value" paddingAngle={4}>
                       <Cell fill="#7C3AED" />
-                      <Cell fill="#E8DFD2" />
+                      <Cell fill="#10B981" />
                     </Pie>
                     <Tooltip {...TOOLTIP_STYLE} cursor={false} />
                     <Legend wrapperStyle={{ color: '#1C1917', fontSize: 12, fontWeight: 'bold' }} />
@@ -771,7 +771,7 @@ export default function MainDashboard() {
                     <YAxis dataKey="name" type="category" width={110} tick={{ fill: '#1C1917', fontSize: 11, fontWeight: 'bold' }} stroke="#E8DFD2" />
                     <Tooltip {...TOOLTIP_STYLE} cursor={false} />
                     <Legend wrapperStyle={{ color: '#1C1917', fontSize: 12, fontWeight: 'bold' }} />
-                    <Bar dataKey="actual" name="Actual" fill="#E8DFD2" stroke="#C2B8AA" radius={[0, 4, 4, 0]} />
+                    <Bar dataKey="actual" name="Actual" fill="#10B981" stroke="#059669" radius={[0, 4, 4, 0]} />
                     <Bar dataKey="present" name="Present" fill="#7C3AED" radius={[0, 4, 4, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
@@ -1108,7 +1108,7 @@ export default function MainDashboard() {
                     <YAxis tick={{ fill: '#1C1917', fontSize: 12, fontWeight: 'bold' }} stroke="#E8DFD2" />
                     <Tooltip {...TOOLTIP_STYLE} cursor={false} formatter={(v) => `${v.toLocaleString()} M²`} />
                     <Legend wrapperStyle={{ color: '#1C1917', fontSize: 12, fontWeight: 'bold' }} />
-                    <Bar dataKey="target" name="Target (M²)" fill="#E8DFD2" stroke="#C2B8AA" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="target" name="Target (M²)" fill="#10B981" stroke="#059669" radius={[4, 4, 0, 0]} />
                     <Bar dataKey="done" name="Achieved (M²)" fill="#7C3AED" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
@@ -1140,7 +1140,7 @@ export default function MainDashboard() {
                     <YAxis dataKey="name" type="category" width={120} tick={{ fill: '#1C1917', fontSize: 11, fontWeight: 'bold' }} stroke="#E8DFD2" />
                     <Tooltip {...TOOLTIP_STYLE} cursor={false} />
                     <Legend wrapperStyle={{ color: '#1C1917', fontSize: 12, fontWeight: 'bold' }} />
-                    <Bar dataKey="actual" name="Actual" fill="#E8DFD2" stroke="#C2B8AA" radius={[0, 4, 4, 0]} />
+                    <Bar dataKey="actual" name="Actual" fill="#10B981" stroke="#059669" radius={[0, 4, 4, 0]} />
                     <Bar dataKey="present" name="Present" fill="#7C3AED" radius={[0, 4, 4, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
